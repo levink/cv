@@ -8,6 +8,7 @@
 #include <glut.h>
 #include <kmeans.h> 
 #include <scene.h>
+//some useful changes
 
 
 
