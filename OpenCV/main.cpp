@@ -37,8 +37,8 @@ void DrawTeapots();
 void DrawWalls();
 void BGRToRGB();
 
-const int SCREEN_WIDTH = 800;  // Разрешение окона OpenGL&CV по горизонтали
-const int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
+const int SCREEN_WIDTH = 1440;  // Разрешение окона OpenGL&CV по горизонтали
+const int SCREEN_HEIGHT = 900;  // Разрешение окона OpenGL&CV по вертикали
 
 using namespace std; //Определение пространства имён
 
@@ -62,7 +62,7 @@ GLfloat colorTeapot[3] = {0,1,0};
 
 
 CvSize Size;
-IplImage *img, *img2;// Главное изображение, использующиеся OpenCV
+IplImage *img/*Главное изображение, использующиеся OpenCV*/, *gray = 0, *dst = 0;
 
 
 void keybord(unsigned char key, int x, int y)
@@ -143,28 +143,70 @@ void display(void)
 	DrawTeapots();
 	DrawWalls();
 
-	float clusters[18] = {};
+	float clusters[] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
 
-  //  glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
-	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); BGRToRGB();
-	cvCvtColor(img, img2, CV_RGB2GRAY);
-	cvCanny(img, img2, 10, 100);
-
+    glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
+	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData);
+	dst->origin = CV_ORIGIN_BL;
 	
-	
-	//kmeans(6, forkmeans, SCREEN_WIDTH*SCREEN_HEIGHT, 3, clusters, out);
+	cvCvtColor(img, gray, CV_RGB2GRAY);
+    cvCanny(gray, dst, 4, 100, 3);
 
-	DrawFPS();
+	for(int i = 0, c = 0, x = 0, y = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*4; i+=4)
+	{
+		forkmeans[i] = depth[c];
+        if((int)dst->imageData[c] == 0) 
+		{
+			forkmeans[i+1] = 0; 
+		}
+		else 
+		{
+			forkmeans[i+1] = 1;
+		}
+		if(x > SCREEN_WIDTH)
+		{
+			y++;
+			x = 0;
+		}
+		forkmeans[i+2] = (float)(x*((float)1.0/(float)SCREEN_WIDTH));
+		forkmeans[i+3] = (float)(y*((float)1.0/(float)SCREEN_HEIGHT));
+		c++; x++;
+	}
+	kmeans(4, forkmeans, SCREEN_WIDTH*SCREEN_HEIGHT, 2, clusters, out);
+
+	for(int i = 0, a = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*3; i+=3)
+	{
+		if(out[a] == 0)
+		{
+			img->imageData[i] = 0;
+			img->imageData[i+1] = 0;
+			img->imageData[i+2] = 0;
+		}
+		else
+		{
+			img->imageData[i] = 255;
+			img->imageData[i+1] = 255;
+			img->imageData[i+2] = 255;
+		}
+			
+		a++;
+	}
+
+
+
+	//DrawFPS();
 	glFlush();
 	glutSwapBuffers();
-	cvShowImage("Определение объектов", img2);	
+	//cvShowImage("cvCanny", dst);
+	cvShowImage("Определение объектов", img);	
 }
 
 int main(int argc, char **argv)
 {
 	Size.height = SCREEN_HEIGHT; Size.width = SCREEN_WIDTH;
-	img = cvCreateImage(Size, IPL_DEPTH_8U, 1);
-	img2 = cvCreateImage(Size, IPL_DEPTH_8U, 1);
+	img = cvCreateImage(Size, IPL_DEPTH_8U, 3);
+	gray = cvCreateImage(Size, IPL_DEPTH_8U, 1);
+    dst = cvCreateImage(Size, IPL_DEPTH_8U, 1);
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -177,7 +219,7 @@ int main(int argc, char **argv)
 	out = new int[SCREEN_WIDTH*SCREEN_HEIGHT];
 	depth = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
 	color = new char[SCREEN_WIDTH*SCREEN_HEIGHT*3];
-	forkmeans = new float[SCREEN_WIDTH*SCREEN_HEIGHT*6];
+	forkmeans = new float[SCREEN_WIDTH*SCREEN_HEIGHT*4];
 	glutMainLoop();
 	delete[]out;
 	delete[]depth;
@@ -193,9 +235,9 @@ void DrawFPS()
     cvInitFont( &font, CV_FONT_HERSHEY_SIMPLEX,0.7, 0.7, 0, 0, CV_AA);
 	char buf[20];
 	sprintf(buf,"FPS: %d",fps);
-	cvPutText(img, buf, pt, &font, CV_RGB(100, 100, 255));
+	cvPutText(dst, buf, pt, &font, CV_RGB(100, 100, 255));
 	pt = cvPoint( 10, SCREEN_HEIGHT-30 );
-	cvPutText(img, "CLUSTERS: 3", pt, &font, CV_RGB(100, 100, 255));
+	cvPutText(dst, "CLUSTERS: 3", pt, &font, CV_RGB(100, 100, 255));
 }
 
 void BGRToRGB()
