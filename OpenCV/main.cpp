@@ -7,22 +7,7 @@
 #include "scene.h"
 #include "glut.h"          
 
-/*
-	1. Определяем границы объектов (резкие переходы)
-	2. Смотрим значения глубины этих пикселов
-	3. Кластеризуем только точки из пункта 2
-	4. Определяем размеры кластеров.
-
-	k-means:
-	1. По глубине
-	2. По глубине и по цвету
-	3. По глубине и по положению
-	4. По всем параметрам
-	5. Больше кластеров: 5, 7, 9,10... 
-	6. Почему так работает? + скриншоты.
-
-	альтернатива k-means... ?
-*/
+#define KMEANS_CLUSTERS 2
 
 void kmeans(
             int  dim,		                  // dimension of data 
@@ -32,10 +17,10 @@ void kmeans(
             float *cluster_centroid,         // initial cluster centroids
             int   *cluster_assignment_final   // output
            );
-void DrawFPS();
+void DrawFPS(IplImage * pic, int _fps, int clusters);
 void DrawTeapots();
 void DrawWalls();
-void BGRToRGB();
+void BGRToRGB(IplImage * pic);
 
 const int SCREEN_WIDTH = 1440;  // Разрешение окона OpenGL&CV по горизонтали
 const int SCREEN_HEIGHT = 900;  // Разрешение окона OpenGL&CV по вертикали
@@ -147,6 +132,7 @@ void display(void)
 
     glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
 	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData);
+
 	dst->origin = CV_ORIGIN_BL;
 	
 	cvCvtColor(img, gray, CV_RGB2GRAY);
@@ -172,7 +158,7 @@ void display(void)
 		forkmeans[i+3] = (float)(y*((float)1.0/(float)SCREEN_HEIGHT));
 		c++; x++;
 	}
-	kmeans(4, forkmeans, SCREEN_WIDTH*SCREEN_HEIGHT, 2, clusters, out);
+	kmeans(4, forkmeans, SCREEN_WIDTH*SCREEN_HEIGHT, KMEANS_CLUSTERS, clusters, out);
 
 	for(int i = 0, a = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*3; i+=3)
 	{
@@ -191,10 +177,7 @@ void display(void)
 			
 		a++;
 	}
-
-
-
-	//DrawFPS();
+	DrawFPS(img, fps, KMEANS_CLUSTERS);
 	glFlush();
 	glutSwapBuffers();
 	//cvShowImage("cvCanny", dst);
@@ -228,26 +211,27 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void DrawFPS()
+void DrawFPS(IplImage * pic, int _fps, int clusters)
 {
 	CvPoint pt = cvPoint( SCREEN_WIDTH-100, SCREEN_HEIGHT-30 );
     CvFont font;
     cvInitFont( &font, CV_FONT_HERSHEY_SIMPLEX,0.7, 0.7, 0, 0, CV_AA);
 	char buf[20];
-	sprintf(buf,"FPS: %d",fps);
-	cvPutText(dst, buf, pt, &font, CV_RGB(100, 100, 255));
+	sprintf(buf,"FPS: %d",_fps);
+	cvPutText(pic, buf, pt, &font, CV_RGB(100, 100, 255));
 	pt = cvPoint( 10, SCREEN_HEIGHT-30 );
-	cvPutText(dst, "CLUSTERS: 3", pt, &font, CV_RGB(100, 100, 255));
+	sprintf(buf,"CLUSTERS: %d", clusters);
+	cvPutText(pic, buf, pt, &font, CV_RGB(100, 100, 255));
 }
 
-void BGRToRGB()
+void BGRToRGB(IplImage * pic)
 {
 	for(int i = 0; i<(SCREEN_WIDTH*SCREEN_HEIGHT*3); i+=3)
 	{
 		char tmp;
-		tmp = img->imageData[i];
-		img->imageData[i] = img->imageData[i+2];
-		img->imageData[i+2] = tmp;
+		tmp = pic->imageData[i];
+		pic->imageData[i] = img->imageData[i+2];
+		pic->imageData[i+2] = tmp;
 	}
 }
 
