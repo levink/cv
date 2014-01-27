@@ -230,7 +230,7 @@ void BGRToRGB(IplImage * pic)
 	{
 		char tmp;
 		tmp = pic->imageData[i];
-		pic->imageData[i] = img->imageData[i+2];
+		pic->imageData[i] = pic->imageData[i+2];
 		pic->imageData[i+2] = tmp;
 	}
 }
