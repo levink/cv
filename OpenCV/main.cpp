@@ -47,7 +47,7 @@ GLfloat colorTeapot[3] = {0,1,0};
 
 
 CvSize Size;
-IplImage *img/*Главное изображение, использующиеся OpenCV*/, *gray = 0, *dst = 0;
+IplImage *img = 0/*Главное изображение, использующиеся OpenCV*/, *gray = 0, *dst = 0;
 
 
 void keybord(unsigned char key, int x, int y)
@@ -122,61 +122,60 @@ void display(void)
 	glLoadIdentity();
 	glRotated(180,0,1,0);
 	glRotated(MyCam.GetAngleXOZ(),0,1,0);
+	glRotated(45,0,1,0);
 	glTranslated(-MyCam.GetX(), -MyCam.GetY(), -MyCam.GetZ());
 	img->origin = IPL_ORIGIN_BL;
 
 	DrawTeapots();
 	DrawWalls();
 
-	float clusters[] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
+	float clusters[] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0};
 
     glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
-	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData);
-
+	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); BGRToRGB(img);
 	dst->origin = CV_ORIGIN_BL;
-	
 	cvCvtColor(img, gray, CV_RGB2GRAY);
     cvCanny(gray, dst, 4, 100, 3);
-
-	for(int i = 0, c = 0, x = 0, y = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*4; i+=4)
+	int n = 0; 
+	for(int i = 0, c = 0, k = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT; i++)
 	{
-		forkmeans[i] = depth[c];
-        if((int)dst->imageData[c] == 0) 
+		if(dst->imageData[i])
+		{} else
 		{
-			forkmeans[i+1] = 0; 
+			forkmeans[k] = depth[c];
+			int x = i, y = 0;
+			while(x>SCREEN_WIDTH)
+			{
+				x-=SCREEN_WIDTH;
+				y++;
+			}
+			forkmeans[k+1] = (float)(x*((float)1.0/(float)SCREEN_WIDTH));
+			forkmeans[k+2] = (float)(y*((float)1.0/(float)SCREEN_HEIGHT));
+			k+=3;
+			n++;
 		}
-		else 
-		{
-			forkmeans[i+1] = 1;
-		}
-		if(x > SCREEN_WIDTH)
-		{
-			y++;
-			x = 0;
-		}
-		forkmeans[i+2] = (float)(x*((float)1.0/(float)SCREEN_WIDTH));
-		forkmeans[i+3] = (float)(y*((float)1.0/(float)SCREEN_HEIGHT));
-		c++; x++;
+		c++;
 	}
-	kmeans(4, forkmeans, SCREEN_WIDTH*SCREEN_HEIGHT, KMEANS_CLUSTERS, clusters, out);
+	
+	kmeans(3, forkmeans, n, KMEANS_CLUSTERS, clusters, out);
+	
+	cout << out;
 
-	for(int i = 0, a = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*3; i+=3)
+	/*for(int i = 0; i<n; i+=3)
 	{
-		if(out[a] == 0)
+		x = forkmeans[i+1]; 
+		y = forkmeans[i+2];
+		while(y)
 		{
-			img->imageData[i] = 0;
-			img->imageData[i+1] = 0;
-			img->imageData[i+2] = 0;
+			x+=SCREEN_WIDTH;
+			y--;
 		}
-		else
-		{
-			img->imageData[i] = 255;
-			img->imageData[i+1] = 255;
-			img->imageData[i+2] = 255;
-		}
-			
-		a++;
-	}
+	}*/
+
+
+
+	n = 0;
+
 	DrawFPS(img, fps, KMEANS_CLUSTERS);
 	glFlush();
 	glutSwapBuffers();
