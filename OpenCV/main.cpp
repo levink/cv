@@ -122,7 +122,7 @@ void display(void)
 	glLoadIdentity();
 	glRotated(180,0,1,0);
 	glRotated(MyCam.GetAngleXOZ(),0,1,0);
-	glRotated(45,0,1,0);
+	glRotated(-60,0,1,0);
 	glTranslated(-MyCam.GetX(), -MyCam.GetY(), -MyCam.GetZ());
 	img->origin = IPL_ORIGIN_BL;
 
@@ -149,28 +149,47 @@ void display(void)
 				x-=SCREEN_WIDTH;
 				y++;
 			}
-			forkmeans[k+1] = (float)(x*((float)1.0/(float)SCREEN_WIDTH));
-			forkmeans[k+2] = (float)(y*((float)1.0/(float)SCREEN_HEIGHT));
+			forkmeans[k+1] = (float)((float)(x)/(float)(SCREEN_WIDTH));
+			forkmeans[k+2] = (float)((float)(y)/(float)(SCREEN_HEIGHT));
 			k+=3;
 			n++;
 		}
 		c++;
 	}
+
 	
 	kmeans(3, forkmeans, n, KMEANS_CLUSTERS, clusters, out);
 	
-	cout << out;
+	for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*3; i+=3)
+	{
+		img->imageData[i] = 0;
+		img->imageData[i+1] = 0;
+		img->imageData[i+2] = 0;
+	}
 
-	/*for(int i = 0; i<n; i+=3)
+	float x = 0, y = 0; int c = 0;
+	for(int i = 0; i<n; i+=3)
 	{
 		x = forkmeans[i+1]; 
 		y = forkmeans[i+2];
-		while(y)
+		if(out[c])
 		{
-			x+=SCREEN_WIDTH;
-			y--;
+			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3] = 255;   
+			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3+1] = 255;   
+			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3+2] = 255;   
 		}
-	}*/
+		else
+		{
+			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3] = 0;   
+			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3+1] = 255;   
+			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3+2] = 0;   
+		}
+		c++;
+	}
+	c = 0;
+
+
+
 
 
 
