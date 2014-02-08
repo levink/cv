@@ -8,6 +8,7 @@
 #include "glut.h"          
 
 #define KMEANS_CLUSTERS 2
+#define CAMERA_STEP 10
 
 void kmeans(
             int  dim,		                  // dimension of data 
@@ -60,22 +61,22 @@ void keybord(unsigned char key, int x, int y)
 	
 	if (key == 'w' || key == 246) // Движение вперед
 	{
-		MyCam.MoveForward(1);
+		MyCam.MoveForward(CAMERA_STEP);
 	}
 
 	if (key == 's' || key == 251) // Движение назад
 	{
-		MyCam.MoveBack(1);
+		MyCam.MoveBack(CAMERA_STEP);
 	}
 
 	if (key == 'a' || key == 244) // Поворот камеры направо
 	{
-		MyCam.Rotate(-1);
+		MyCam.Rotate(-CAMERA_STEP);
 	}
 
 	if (key == 'd' || key == 226) // Поворот камеры налево
 	{
-		MyCam.Rotate(1);
+		MyCam.Rotate(CAMERA_STEP);
 	}
 
 	glutPostRedisplay();
@@ -122,7 +123,7 @@ void display(void)
 	glLoadIdentity();
 	glRotated(180,0,1,0);
 	glRotated(MyCam.GetAngleXOZ(),0,1,0);
-	glRotated(-60,0,1,0);
+	//glRotated(-60,0,1,0);
 	glTranslated(-MyCam.GetX(), -MyCam.GetY(), -MyCam.GetZ());
 	img->origin = IPL_ORIGIN_BL;
 
@@ -137,10 +138,9 @@ void display(void)
 	cvCvtColor(img, gray, CV_RGB2GRAY);
     cvCanny(gray, dst, 4, 100, 3);
 	int n = 0; 
-	for(int i = 0, c = 0, k = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT; i++)
+	for(int i = 0, c = 0, k = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT; i++, c++)
 	{
 		if(dst->imageData[i])
-		{} else
 		{
 			forkmeans[k] = depth[c];
 			int x = i, y = 0;
@@ -153,52 +153,51 @@ void display(void)
 			forkmeans[k+2] = (float)((float)(y)/(float)(SCREEN_HEIGHT));
 			k+=3;
 			n++;
+		} 
+		else
+		{
 		}
-		c++;
 	}
 
-	
 	kmeans(3, forkmeans, n, KMEANS_CLUSTERS, clusters, out);
 	
-	for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*3; i+=3)
-	{
-		img->imageData[i] = 0;
-		img->imageData[i+1] = 0;
-		img->imageData[i+2] = 0;
-	}
+	//for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*3; i+=3)
+	//{
+	//	img->imageData[i] = 0;
+	//	img->imageData[i+1] = 0;
+	//	img->imageData[i+2] = 0;
+	//}
 
-	float x = 0, y = 0; int c = 0;
-	for(int i = 0; i<n; i+=3)
+	float x = 0, y = 0; int z = 0;
+
+	z = 0;
+	for(int i = 0; i<n; i+=3, z++)
 	{
 		x = forkmeans[i+1]; 
 		y = forkmeans[i+2];
-		if(out[c])
+		if(!x) x=0.0000001;
+		if(!y) y=0.0000001;
+		cout << (int)(x*SCREEN_WIDTH*SCREEN_WIDTH*y*SCREEN_HEIGHT)*3 << endl;
+		if(out[z])
 		{
-			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3] = 255;   
-			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3+1] = 255;   
-			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3+2] = 255;   
+			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3] = 255;   
+			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3+1] = 255;   
+			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3+2] = 255;   
 		}
 		else
 		{
-			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3] = 0;   
-			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3+1] = 255;   
-			img->imageData[(int)(((y*SCREEN_HEIGHT)-1)*SCREEN_WIDTH+(x*SCREEN_WIDTH))*3+2] = 0;   
+			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3] = 0;   
+			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3+1] = 255;   
+			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3+2] = 0;   
 		}
-		c++;
+
 	}
-	c = 0;
-
-
-
-
-
-
-	n = 0;
+	
+	z = 0; n = 0;
 
 	DrawFPS(img, fps, KMEANS_CLUSTERS);
 	glFlush();
 	glutSwapBuffers();
-	//cvShowImage("cvCanny", dst);
 	cvShowImage("Определение объектов", img);	
 }
 
