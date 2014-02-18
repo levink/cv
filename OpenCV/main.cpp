@@ -23,8 +23,8 @@ void DrawTeapots();
 void DrawWalls();
 void BGRToRGB(IplImage * pic);
 
-const int SCREEN_WIDTH = 1440;  // Разрешение окона OpenGL&CV по горизонтали
-const int SCREEN_HEIGHT = 900;  // Разрешение окона OpenGL&CV по вертикали
+const int SCREEN_WIDTH = 800;  // Разрешение окона OpenGL&CV по горизонтали
+const int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
 
 using namespace std; //Определение пространства имён
 
@@ -132,41 +132,41 @@ void display(void)
 
 	float clusters[] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0};
 
+
     glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
-	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); BGRToRGB(img);
+	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
+	BGRToRGB(img); //(!)
 	dst->origin = CV_ORIGIN_BL;
 	cvCvtColor(img, gray, CV_RGB2GRAY);
     cvCanny(gray, dst, 4, 100, 3);
-	int n = 0; 
+	
+	int n = 0; //resultArrayLength 
+
 	for(int i = 0, c = 0, k = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT; i++, c++)
 	{
 		if(dst->imageData[i])
 		{
+			float x = (i%SCREEN_WIDTH) / (float)SCREEN_WIDTH;  //[0..1]
+			float y = i/((float)SCREEN_WIDTH * SCREEN_HEIGHT); //[0..1]
+		
+		
 			forkmeans[k] = depth[c];
-			int x = i, y = 0;
-			while(x>SCREEN_WIDTH)
-			{
-				x-=SCREEN_WIDTH;
-				y++;
-			}
-			forkmeans[k+1] = (float)((float)(x)/(float)(SCREEN_WIDTH));
-			forkmeans[k+2] = (float)((float)(y)/(float)(SCREEN_HEIGHT));
+			forkmeans[k+1] = x;
+			forkmeans[k+2] = y;
 			k+=3;
 			n++;
 		} 
-		else
-		{
-		}
+		
 	}
 
 	kmeans(3, forkmeans, n, KMEANS_CLUSTERS, clusters, out);
 	
-	//for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*3; i+=3)
-	//{
-	//	img->imageData[i] = 0;
-	//	img->imageData[i+1] = 0;
-	//	img->imageData[i+2] = 0;
-	//}
+	/*for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*3; i+=3)
+	{
+		img->imageData[i] = 0;
+		img->imageData[i+1] = 0;
+		img->imageData[i+2] = 0;
+	}*/
 
 	float x = 0, y = 0; int z = 0;
 
@@ -175,20 +175,19 @@ void display(void)
 	{
 		x = forkmeans[i+1]; 
 		y = forkmeans[i+2];
-		if(!x) x=0.0000001;
-		if(!y) y=0.0000001;
-		cout << (int)(x*SCREEN_WIDTH*SCREEN_WIDTH*y*SCREEN_HEIGHT)*3 << endl;
+		int index = (y * SCREEN_HEIGHT * SCREEN_WIDTH) * 3;
+
 		if(out[z])
 		{
-			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3] = 255;   
-			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3+1] = 255;   
-			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3+2] = 255;   
+			img->imageData[index] = 255;   
+			img->imageData[index+1] = 255;   
+			img->imageData[index+2] = 255;   
 		}
 		else
 		{
-			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3] = 0;   
-			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3+1] = 255;   
-			img->imageData[(int)(SCREEN_WIDTH*y*SCREEN_HEIGHT+x*SCREEN_WIDTH)*3+2] = 0;   
+			img->imageData[index] = 0;   
+			img->imageData[index+1] = 255;   
+			img->imageData[index+2] = 0;   
 		}
 
 	}

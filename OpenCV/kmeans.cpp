@@ -212,7 +212,7 @@ int assignment_change_count(int n, int a[], int b[])
   }
 
 void kmeans(
-            int  dim,		                     // dimension of data 
+            int  dim,		                // dimension of data 
 
             float *X,                        // pointer to data
             int   n,                         // number of elements
