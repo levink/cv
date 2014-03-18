@@ -21,7 +21,6 @@ void kmeans(
 void DrawFPS(IplImage * pic, int _fps, int clusters);
 void DrawTeapots();
 void DrawWalls();
-void BGRToRGB(IplImage * pic);
 
 const int SCREEN_WIDTH = 800;  // Разрешение окона OpenGL&CV по горизонтали
 const int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
@@ -30,7 +29,7 @@ using namespace std; //Определение пространства имён
 
 float *depth, *forkmeans;
 double angle = 0 /*Угол поворота камеры XOZ*/, step = 0 /*Шаг камеры*/, camLookAt[3] = {0,0,0}/*Направление взгляда камеры*/;
-int last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
+int w1 = -1, w2 = -1, last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
 Camera MyCam; // Главный класс, отвечающий за управление камерой
 char *output, *color;
 long int t1 = 0;
@@ -48,7 +47,7 @@ GLfloat colorTeapot[3] = {0,1,0};
 
 
 CvSize Size;
-IplImage *img = 0/*Главное изображение, использующиеся OpenCV*/, *gray = 0, *dst = 0;
+IplImage *img = 0/*Главное изображение, использующиеся OpenCV*/;
 
 
 void keybord(unsigned char key, int x, int y)
@@ -56,7 +55,6 @@ void keybord(unsigned char key, int x, int y)
 	if (key == 'j' || key == 238)
 	{
 	
-
 	}
 	
 	if (key == 'w' || key == 246) // Движение вперед
@@ -96,6 +94,40 @@ void idle(void)
 	glutPostRedisplay();
 }
 
+void display2(void)
+{
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glShadeModel(GL_SMOOTH);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, amb);
+	glEnable(GL_DEPTH_TEST);
+	glLightfv(GL_LIGHT0, GL_POSITION, arr);
+	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,100);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glRotated(180,0,1,0);
+	glRotated(MyCam.GetAngleXOZ(),0,1,0);
+	glTranslated(-MyCam.GetX(), -MyCam.GetY(), -MyCam.GetZ());
+	glColor3d(1,0,0);
+
+	glBegin(GL_POINTS);
+			for(int c = 0; c<SCREEN_WIDTH*SCREEN_HEIGHT; c++)
+			{
+				float x = c%SCREEN_WIDTH, y = c/SCREEN_WIDTH;
+				glVertex3d(x/100,y/100,depth[c]);
+			} 
+		
+
+	glEnd();
+	glFlush();
+	glutSwapBuffers();
+
+}
+
 void display(void)
 {
 
@@ -118,112 +150,47 @@ void display(void)
 	glLightfv(GL_LIGHT0, GL_SPECULAR, amb);
 	glEnable(GL_DEPTH_TEST);
 	glLightfv(GL_LIGHT0, GL_POSITION, arr);
-	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,10,200);
+	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,100);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glRotated(180,0,1,0);
 	glRotated(MyCam.GetAngleXOZ(),0,1,0);
-	//glRotated(-60,0,1,0);
 	glTranslated(-MyCam.GetX(), -MyCam.GetY(), -MyCam.GetZ());
-	img->origin = IPL_ORIGIN_BL;
 
 	DrawTeapots();
 	DrawWalls();
 
-	float clusters[] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0};
-
-
     glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
-	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
-	BGRToRGB(img); //(!)
-	dst->origin = CV_ORIGIN_BL;
-	cvCvtColor(img, gray, CV_RGB2GRAY);
-    cvCanny(gray, dst, 4, 100, 3);
+	//glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
+	cvCvtColor(img, img, CV_BGR2RGB);
+	img->origin = IPL_ORIGIN_BL;
 	
-	int n = 0; //resultArrayLength 
 
-	for(int i = 0, c = 0, k = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT; i++, c++)
-	{
-		if(dst->imageData[i])
-		{
-			float x = (i%SCREEN_WIDTH) / (float)SCREEN_WIDTH;  //[0..1]
-			float y = i/((float)SCREEN_WIDTH * SCREEN_HEIGHT); //[0..1]
-		
-		
-			forkmeans[k] = depth[c];
-			forkmeans[k+1] = x;
-			forkmeans[k+2] = y;
-			k+=3;
-			n++;
-		} 
-		
-	}
-
-	kmeans(3, forkmeans, n, KMEANS_CLUSTERS, clusters, out);
-	
-	/*for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT*3; i+=3)
-	{
-		img->imageData[i] = 0;
-		img->imageData[i+1] = 0;
-		img->imageData[i+2] = 0;
-	}*/
-
-	float x = 0, y = 0; int z = 0;
-
-	z = 0;
-	for(int i = 0; i<n; i+=3, z++)
-	{
-		x = forkmeans[i+1]; 
-		y = forkmeans[i+2];
-		int index = (y * SCREEN_HEIGHT * SCREEN_WIDTH) * 3;
-
-		if(out[z])
-		{
-			img->imageData[index] = 255;   
-			img->imageData[index+1] = 255;   
-			img->imageData[index+2] = 255;   
-		}
-		else
-		{
-			img->imageData[index] = 0;   
-			img->imageData[index+1] = 255;   
-			img->imageData[index+2] = 0;   
-		}
-
-	}
-	
-	z = 0; n = 0;
-
-	DrawFPS(img, fps, KMEANS_CLUSTERS);
+//	DrawFPS(img, fps, KMEANS_CLUSTERS);
 	glFlush();
 	glutSwapBuffers();
-	cvShowImage("Определение объектов", img);	
+//	cvShowImage("Определение объектов", img);	
 }
 
 int main(int argc, char **argv)
 {
 	Size.height = SCREEN_HEIGHT; Size.width = SCREEN_WIDTH;
 	img = cvCreateImage(Size, IPL_DEPTH_8U, 3);
-	gray = cvCreateImage(Size, IPL_DEPTH_8U, 1);
-    dst = cvCreateImage(Size, IPL_DEPTH_8U, 1);
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-	glutCreateWindow("OpenGL тестовый мир");
+	w1 = glutCreateWindow("OpenGL - Имитация реального мира");
 	glutDisplayFunc(display);
 	glutIdleFunc(idle);
 	glutKeyboardFunc(keybord);
 	glutMotionFunc(mouseMotion);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
-	out = new int[SCREEN_WIDTH*SCREEN_HEIGHT];
+	w2 = glutCreateWindow("OpenGL - Восстановление трёхмерной сцены");
+	glutSetWindow(w2);
+	glutDisplayFunc(display2);
 	depth = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
-	color = new char[SCREEN_WIDTH*SCREEN_HEIGHT*3];
-	forkmeans = new float[SCREEN_WIDTH*SCREEN_HEIGHT*4];
 	glutMainLoop();
-	delete[]out;
 	delete[]depth;
-	delete[]color;
-	delete[]forkmeans;
 	return 0;
 }
 
@@ -238,17 +205,6 @@ void DrawFPS(IplImage * pic, int _fps, int clusters)
 	pt = cvPoint( 10, SCREEN_HEIGHT-30 );
 	sprintf(buf,"CLUSTERS: %d", clusters);
 	cvPutText(pic, buf, pt, &font, CV_RGB(100, 100, 255));
-}
-
-void BGRToRGB(IplImage * pic)
-{
-	for(int i = 0; i<(SCREEN_WIDTH*SCREEN_HEIGHT*3); i+=3)
-	{
-		char tmp;
-		tmp = pic->imageData[i];
-		pic->imageData[i] = pic->imageData[i+2];
-		pic->imageData[i+2] = tmp;
-	}
 }
 
 void DrawTeapots()
