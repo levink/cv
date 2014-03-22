@@ -8,7 +8,7 @@
 #include "glut.h"          
 
 #define KMEANS_CLUSTERS 2
-#define CAMERA_STEP 10
+#define CAMERA_STEP 1
 
 void kmeans(
             int  dim,		                  // dimension of data 
@@ -27,10 +27,11 @@ const int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
 
 using namespace std; //Определение пространства имён
 
-float *depth, *forkmeans;
+float *depth, *mainmas;
 double angle = 0 /*Угол поворота камеры XOZ*/, step = 0 /*Шаг камеры*/, camLookAt[3] = {0,0,0}/*Направление взгляда камеры*/;
 int w1 = -1, w2 = -1, last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
 Camera MyCam; // Главный класс, отвечающий за управление камерой
+Camera2 MyCam2;
 char *output, *color;
 long int t1 = 0;
 int *out;
@@ -80,6 +81,37 @@ void keybord(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
+
+void keybord2(unsigned char key, int x, int y)
+{
+	if (key == 'j' || key == 238)
+	{
+	
+	}
+	
+	if (key == 'w' || key == 246) // Движение вперед
+	{
+		MyCam2.MoveForward(CAMERA_STEP);
+	}
+
+	if (key == 's' || key == 251) // Движение назад
+	{
+		MyCam2.MoveBack(CAMERA_STEP);
+	}
+
+	if (key == 'a' || key == 244) // Поворот камеры направо
+	{
+		MyCam2.Rotate(-CAMERA_STEP);
+	}
+
+	if (key == 'd' || key == 226) // Поворот камеры налево
+	{
+		MyCam2.Rotate(CAMERA_STEP);
+	}
+
+	glutPostRedisplay();
+}
+
 void mouseMotion(int x, int y)
 {
 	//std::cout << "Mouse X: " << x << ", Y: " << y << std::endl;
@@ -88,7 +120,7 @@ void mouseMotion(int x, int y)
 void idle(void)
 {
 	// Команды поворота чайника 
-	angle+=0.3;
+	angle+=1;
 	if(angle>360) angle = 0;
 
 	glutPostRedisplay();
@@ -100,29 +132,30 @@ void display2(void)
 	glLoadIdentity();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-	glEnable(GL_LIGHTING);
+	//glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glShadeModel(GL_SMOOTH);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, amb);
 	glEnable(GL_DEPTH_TEST);
 	glLightfv(GL_LIGHT0, GL_POSITION, arr);
-	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,100);
+	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,1000);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+//	glTranslated(0,-2.5,0);
+//	glRotated(150,0,1,0);
+//	glRotated(angle,0,1,0);
 	glRotated(180,0,1,0);
-	glRotated(MyCam.GetAngleXOZ(),0,1,0);
-	glTranslated(-MyCam.GetX(), -MyCam.GetY(), -MyCam.GetZ());
-	glColor3d(1,0,0);
-
+	glRotated(MyCam2.GetAngleXOZ(),0,1,0);
+	glTranslated(-MyCam2.GetX(), -2.5, -MyCam2.GetZ());
+	glColor3d(1,1,1);
 	glBegin(GL_POINTS);
 			for(int c = 0; c<SCREEN_WIDTH*SCREEN_HEIGHT; c++)
 			{
-				float x = c%SCREEN_WIDTH, y = c/SCREEN_WIDTH;
-				glVertex3d(x/100,y/100,depth[c]);
+				glVertex3d(mainmas[c*3]*0.01, mainmas[c*3+1]*0.01, mainmas[c*3+2]*10);
 			} 
-		
 
 	glEnd();
+
 	glFlush();
 	glutSwapBuffers();
 
@@ -164,11 +197,27 @@ void display(void)
 	//glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
 	cvCvtColor(img, img, CV_BGR2RGB);
 	img->origin = IPL_ORIGIN_BL;
-	
+
+	int y = 0, x = 0;
+	for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT; i++)
+	{
+		if(x>=SCREEN_WIDTH)
+		{
+			x = 0;
+			y++;
+		}
+		mainmas[i*3] = x;
+		mainmas[i*3+1] = y;
+		mainmas[i*3+2] = depth[i];
+		x++;
+	}
 
 //	DrawFPS(img, fps, KMEANS_CLUSTERS);
 	glFlush();
 	glutSwapBuffers();
+	glutSetWindow(w2);
+	glutPostRedisplay();
+	glutSetWindow(w1);
 //	cvShowImage("Определение объектов", img);	
 }
 
@@ -188,7 +237,9 @@ int main(int argc, char **argv)
 	w2 = glutCreateWindow("OpenGL - Восстановление трёхмерной сцены");
 	glutSetWindow(w2);
 	glutDisplayFunc(display2);
+	glutKeyboardFunc(keybord2);
 	depth = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
+	mainmas = new float[SCREEN_WIDTH*SCREEN_HEIGHT*3];
 	glutMainLoop();
 	delete[]depth;
 	return 0;
@@ -213,19 +264,19 @@ void DrawTeapots()
   
 	glPushMatrix();
 	glTranslated(95,9.5,65);
-	glRotated(angle,0,1,0);
+//	glRotated(angle,0,1,0);
 	glutSolidTeapot(3);
 	glPopMatrix();
 
 	glPushMatrix();
 	glTranslated(95,9.5,80);
-	glRotated(angle,0,1,0);
+//	glRotated(angle,0,1,0);
 	glutSolidDodecahedron();
 	glPopMatrix();
 
 	glPushMatrix();
 	glTranslated(95, 9.5, 50);
-	glRotated(-angle,0,1,0);
+//	glRotated(-angle,0,1,0);
 	glutWireTeapot(3);
 	glPopMatrix();
 

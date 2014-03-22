@@ -15,11 +15,17 @@ public:
 	bool MoveBack(int step);
 };
 
-class Image
+class Camera2
 {
+private:
+	double camPos2[3], a;
 public:
-	char * color;
-	float * depth;
-	IplImage * img;
-	Image();
+	Camera2();
+	double GetX();
+	double GetY();
+	double GetZ();
+	double GetAngleXOZ();
+	bool Rotate(int angleZ);
+	bool MoveForward(int step);
+	bool MoveBack(int step);
 };
