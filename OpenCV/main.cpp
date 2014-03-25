@@ -48,7 +48,7 @@ GLfloat colorTeapot[3] = {0,1,0};
 
 
 CvSize Size;
-IplImage *img = 0/*Главное изображение, использующиеся OpenCV*/;
+IplImage *img = 0/*Главное изображение, использующиеся OpenCV*/, *gray, *dst;
 
 
 void keybord(unsigned char key, int x, int y)
@@ -148,14 +148,31 @@ void display2(void)
 	glRotated(MyCam2.GetAngleXOZ(),0,1,0);
 	glTranslated(-MyCam2.GetX(), -2.5, -MyCam2.GetZ());
 	glColor3d(1,1,1);
+	glPointSize(2);
+
 	glBegin(GL_POINTS);
 			for(int c = 0; c<SCREEN_WIDTH*SCREEN_HEIGHT; c++)
 			{
-				glVertex3d(mainmas[c*3]*0.01, mainmas[c*3+1]*0.01, mainmas[c*3+2]*10);
+				if(dst->imageData[c])
+				{
+					glColor3d(mainmas[c*3+2],mainmas[c*3+2],mainmas[c*3+2]);
+					glVertex3d(mainmas[c*3]*0.01, mainmas[c*3+1]*0.01, mainmas[c*3+2]*10);
+				}
 			} 
 
 	glEnd();
 
+	glBegin(GL_LINES);
+	glColor3d(1,0,0);
+	glVertex3i(0,0,0);
+	glVertex3i(500,0,0);
+	glColor3d(0,1,0);
+	glVertex3i(0,0,0);
+	glVertex3i(0,500,0);
+	glColor3d(0,0,1);
+	glVertex3i(0,0,0);
+	glVertex3i(0,0,500);
+	glEnd();
 	glFlush();
 	glutSwapBuffers();
 
@@ -193,10 +210,15 @@ void display(void)
 	DrawTeapots();
 	DrawWalls();
 
+	//img->origin = IPL_ORIGIN_BL;
+	//gray->origin = IPL_ORIGIN_BL;
+	dst->origin = IPL_ORIGIN_BL;
+
     glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
-	//glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
-	cvCvtColor(img, img, CV_BGR2RGB);
-	img->origin = IPL_ORIGIN_BL;
+	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
+
+	cvCvtColor(img, gray, CV_BGR2GRAY);
+	cvCanny(gray, dst, 10, 20, 3);
 
 	int y = 0, x = 0;
 	for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT; i++)
@@ -218,13 +240,15 @@ void display(void)
 	glutSetWindow(w2);
 	glutPostRedisplay();
 	glutSetWindow(w1);
-//	cvShowImage("Определение объектов", img);	
+	cvShowImage("Определение объектов", dst);	
 }
 
 int main(int argc, char **argv)
 {
 	Size.height = SCREEN_HEIGHT; Size.width = SCREEN_WIDTH;
 	img = cvCreateImage(Size, IPL_DEPTH_8U, 3);
+	gray = cvCreateImage(Size, IPL_DEPTH_8U, 1);
+	dst = cvCreateImage(Size, IPL_DEPTH_8U, 1);
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -344,3 +368,4 @@ void DrawWalls()
 		glVertex3d(100,30,0);
   glEnd();
 }
+
