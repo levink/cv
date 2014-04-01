@@ -51,8 +51,68 @@ CvSize Size;
 IplImage *img = 0/*Главное изображение, использующиеся OpenCV*/, *gray, *dst;
 
 
+class Matrix;
+class Vector4d
+{
+public:
+	double e[4];
+	Vector4d(double v[4])
+	{
+		e[0] = v[0];
+		e[1] = v[1];
+		e[2] = v[2];
+		e[3] = v[3];
+	}
+};
+class Matrix
+{
+public:
+	double e[4][4];
+	Matrix(double values[4][4])
+	{
+		e[0][0] = values[0][0];
+		e[0][1] = values[0][1];
+		e[0][2] = values[0][2];
+		e[0][3] = values[0][3];	
+
+		e[1][0] = values[1][0];
+		e[1][1] = values[1][1];
+		e[1][2] = values[1][2];
+		e[1][3] = values[1][3];
+		
+		e[2][0] = values[2][0];
+		e[2][1] = values[2][1];
+		e[2][2] = values[2][2];
+		e[2][3] = values[2][3];
+		
+		e[3][0] = values[3][0];
+		e[3][1] = values[3][1];
+		e[3][2] = values[3][2];
+		e[3][3] = values[3][3];
+	}
+	Vector4d operator*(const Vector4d &el){
+		double res[4];
+		res[0] = e[0][0]*el.e[0] + e[0][1]*el.e[1] + e[0][2]*el.e[2] + e[0][3]*el.e[3];
+		res[1] = e[1][0]*el.e[0] + e[1][1]*el.e[1] + e[1][2]*el.e[2] + e[1][3]*el.e[3];
+		res[2] = e[2][0]*el.e[0] + e[2][1]*el.e[1] + e[2][2]*el.e[2] + e[2][3]*el.e[3];
+		res[3] = e[3][0]*el.e[0] + e[3][1]*el.e[1] + e[3][2]*el.e[2] + e[3][3]*el.e[3];
+		return Vector4d(res);
+	};
+};
+
+double v[4][4] = {
+	{SCREEN_WIDTH/SCREEN_HEIGHT * 0.577350269, 0, 0, 0},
+	{0, 0, 0, 0},
+	{0, 0, 0, 0},
+	{0, 0, 0, 0}
+};
+Matrix m1 = Matrix(v);
+
+
 void keybord(unsigned char key, int x, int y)
 {
+	Vector x = Vector(1,10,3,1);
+	Vector y = m1*v;
 	if (key == 'j' || key == 238)
 	{
 	
@@ -80,8 +140,6 @@ void keybord(unsigned char key, int x, int y)
 
 	glutPostRedisplay();
 }
-
-
 void keybord2(unsigned char key, int x, int y)
 {
 	if (key == 'j' || key == 238)
@@ -201,6 +259,7 @@ void display(void)
 	glEnable(GL_DEPTH_TEST);
 	glLightfv(GL_LIGHT0, GL_POSITION, arr);
 	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,100);
+	//glFrustum(SCREEN_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_WIDTH, 1, 100);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glRotated(180,0,1,0);
@@ -240,7 +299,7 @@ void display(void)
 	glutSetWindow(w2);
 	glutPostRedisplay();
 	glutSetWindow(w1);
-	cvShowImage("Определение объектов", dst);	
+	//cvShowImage("Определение объектов", dst);	
 }
 
 int main(int argc, char **argv)
@@ -258,6 +317,7 @@ int main(int argc, char **argv)
 	glutKeyboardFunc(keybord);
 	glutMotionFunc(mouseMotion);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glutInitWindowPosition(850,0);
 	w2 = glutCreateWindow("OpenGL - Восстановление трёхмерной сцены");
 	glutSetWindow(w2);
 	glutDisplayFunc(display2);
@@ -319,6 +379,13 @@ void DrawTeapots()
 	glTranslated(95, 2, 80);
 	glutSolidCube(10);
 	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(95, 2, 40);
+	glutSolidOctahedron();
+	glScaled(2.0,2.0,2.0);
+	glPopMatrix();
+
 }
 
 void DrawWalls()
@@ -368,4 +435,3 @@ void DrawWalls()
 		glVertex3d(100,30,0);
   glEnd();
 }
-
