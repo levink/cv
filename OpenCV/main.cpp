@@ -9,6 +9,7 @@
 
 #define KMEANS_CLUSTERS 2
 #define CAMERA_STEP 1
+#define TAN_30 0.57735026918962576450914878050196
 
 void kmeans(
             int  dim,		                  // dimension of data 
@@ -56,12 +57,12 @@ class Vector4d
 {
 public:
 	double e[4];
-	Vector4d(double v[4])
+	Vector4d(double x,double y,double z,double w)
 	{
-		e[0] = v[0];
-		e[1] = v[1];
-		e[2] = v[2];
-		e[3] = v[3];
+		e[0] = x;
+		e[1] = y;
+		e[2] = z;
+		e[3] = w;
 	}
 };
 class Matrix
@@ -90,29 +91,31 @@ public:
 		e[3][2] = values[3][2];
 		e[3][3] = values[3][3];
 	}
-	Vector4d operator*(const Vector4d &el){
+
+	Vector4d operator*(const Vector4d &el)
+	{
 		double res[4];
 		res[0] = e[0][0]*el.e[0] + e[0][1]*el.e[1] + e[0][2]*el.e[2] + e[0][3]*el.e[3];
 		res[1] = e[1][0]*el.e[0] + e[1][1]*el.e[1] + e[1][2]*el.e[2] + e[1][3]*el.e[3];
 		res[2] = e[2][0]*el.e[0] + e[2][1]*el.e[1] + e[2][2]*el.e[2] + e[2][3]*el.e[3];
 		res[3] = e[3][0]*el.e[0] + e[3][1]*el.e[1] + e[3][2]*el.e[2] + e[3][3]*el.e[3];
-		return Vector4d(res);
+		return Vector4d(res[0], res[1], res[2], res[3]);
 	};
 };
 
 double v[4][4] = {
-	{SCREEN_WIDTH/SCREEN_HEIGHT * 0.577350269, 0, 0, 0},
+	{1/(SCREEN_WIDTH/SCREEN_HEIGHT * TAN_30), 0, 0, 0},
+	{0, 1 / TAN_30, 0, 0},
 	{0, 0, 0, 0},
-	{0, 0, 0, 0},
-	{0, 0, 0, 0}
+	{0, 0, 1, 0}
 };
 Matrix m1 = Matrix(v);
 
 
 void keybord(unsigned char key, int x, int y)
 {
-	Vector x = Vector(1,10,3,1);
-	Vector y = m1*v;
+	//Vector4d x = Vector4d(1,10,3,1);
+	//Vector4d y = m1*v;
 	if (key == 'j' || key == 238)
 	{
 	
