@@ -22,13 +22,14 @@ void kmeans(
 void DrawFPS(IplImage * pic, int _fps, int clusters);
 void DrawTeapots();
 void DrawWalls();
+HWND GetConsoleHwnd();
 
 const int SCREEN_WIDTH = 800;  // Разрешение окона OpenGL&CV по горизонтали
 const int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
 
 using namespace std; //Определение пространства имён
 
-float *depth, *mainmas;
+float *depth, *depth2, *mainmas;
 double angle = 0 /*Угол поворота камеры XOZ*/, step = 0 /*Шаг камеры*/, camLookAt[3] = {0,0,0}/*Направление взгляда камеры*/;
 int w1 = -1, w2 = -1, last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
 Camera MyCam; // Главный класс, отвечающий за управление камерой
@@ -47,6 +48,7 @@ GLfloat colorBlack[3] = {0.5,0.3,0.2};
 GLfloat amb[4] = {0,1,0,0};
 GLfloat colorTeapot[3] = {0,1,0};
 
+HWND hwnd = NULL;
 
 CvSize Size;
 IplImage *img = 0/*Главное изображение, использующиеся OpenCV*/, *gray, *dst;
@@ -57,12 +59,12 @@ class Vector4d
 {
 public:
 	double e[4];
-	Vector4d(double x,double y,double z,double w)
+	Vector4d(double v[4])
 	{
-		e[0] = x;
-		e[1] = y;
-		e[2] = z;
-		e[3] = w;
+		e[0] = v[0];
+		e[1] = v[1];
+		e[2] = v[2];
+		e[3] = v[3];
 	}
 };
 class Matrix
@@ -91,7 +93,6 @@ public:
 		e[3][2] = values[3][2];
 		e[3][3] = values[3][3];
 	}
-
 	Vector4d operator*(const Vector4d &el)
 	{
 		double res[4];
@@ -99,23 +100,27 @@ public:
 		res[1] = e[1][0]*el.e[0] + e[1][1]*el.e[1] + e[1][2]*el.e[2] + e[1][3]*el.e[3];
 		res[2] = e[2][0]*el.e[0] + e[2][1]*el.e[1] + e[2][2]*el.e[2] + e[2][3]*el.e[3];
 		res[3] = e[3][0]*el.e[0] + e[3][1]*el.e[1] + e[3][2]*el.e[2] + e[3][3]*el.e[3];
-		return Vector4d(res[0], res[1], res[2], res[3]);
+		return Vector4d(res);
 	};
 };
 
 double v[4][4] = {
-	{1/(SCREEN_WIDTH/SCREEN_HEIGHT * TAN_30), 0, 0, 0},
-	{0, 1 / TAN_30, 0, 0},
-	{0, 0, 0, 0},
+	{SCREEN_WIDTH/SCREEN_HEIGHT * TAN_30, 0, 0, 0},
+	{0, TAN_30, 0, 0},
+	{0, 0, 0, 1},
+	{0, 0, -0.495, 0.505}
+};
+
+double v1[4][4] = {
+	{1/(SCREEN_WIDTH/SCREEN_HEIGHT)*TAN_30, 0, 0, 0},
+	{0, 1/TAN_30, 0, 0},
+	{0, 0, 101/99, 200/-99},
 	{0, 0, 1, 0}
 };
-Matrix m1 = Matrix(v);
 
 
 void keybord(unsigned char key, int x, int y)
 {
-	//Vector4d x = Vector4d(1,10,3,1);
-	//Vector4d y = m1*v;
 	if (key == 'j' || key == 238)
 	{
 	
@@ -145,6 +150,7 @@ void keybord(unsigned char key, int x, int y)
 }
 void keybord2(unsigned char key, int x, int y)
 {
+
 	if (key == 'j' || key == 238)
 	{
 	
@@ -173,9 +179,20 @@ void keybord2(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
-void mouseMotion(int x, int y)
+void mouse2(int button, int state, int x, int y)
 {
-	//std::cout << "Mouse X: " << x << ", Y: " << y << std::endl;
+	if(state == GLUT_DOWN && button == GLUT_LEFT_BUTTON) 
+	{
+		double m[4] = {0,5,10,1};
+		Vector4d b = Vector4d(m);
+		Matrix m1 = Matrix(v1);
+
+		Vector4d a = m1 * b;
+
+		std::cout << "[Window 2] Mouse X: " << x << ", Y: " << y << ", Z: " << (float)depth2[SCREEN_WIDTH*y+x] << std::endl << std::endl;
+		std::cout << "           Realc X: 10, Y: 5, Z: 0, W: 1" << std::endl;
+		std::cout << "           Vectr X: " << (int)a.e[0] << ", Y: " << (int)a.e[1] << std::endl << std::endl;
+	}
 }
 
 void idle(void)
@@ -192,51 +209,54 @@ void display2(void)
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-	//glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	glShadeModel(GL_SMOOTH);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, amb);
+
+	//glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	//glEnable(GL_LIGHT0);
+	//glShadeModel(GL_SMOOTH);
+	//glLightfv(GL_LIGHT0, GL_SPECULAR, amb);
 	glEnable(GL_DEPTH_TEST);
-	glLightfv(GL_LIGHT0, GL_POSITION, arr);
-	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,1000);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-//	glTranslated(0,-2.5,0);
-//	glRotated(150,0,1,0);
-//	glRotated(angle,0,1,0);
-	glRotated(180,0,1,0);
-	glRotated(MyCam2.GetAngleXOZ(),0,1,0);
-	glTranslated(-MyCam2.GetX(), -2.5, -MyCam2.GetZ());
-	glColor3d(1,1,1);
-	glPointSize(2);
+	//glLightfv(GL_LIGHT0, GL_POSITION, arr);
+	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,100);
+	//glMatrixMode(GL_MODELVIEW);
+	//glLoadIdentity();
+	glRotated(90,0,1,0);
+	//glRotated(MyCam2.GetAngleXOZ(),0,1,0);
+	//glTranslated(-MyCam2.GetX(), -2.5, -MyCam2.GetZ());
+	//glColor3d(1,1,1);
+	//glPointSize(2);
 
-	glBegin(GL_POINTS);
-			for(int c = 0; c<SCREEN_WIDTH*SCREEN_HEIGHT; c++)
-			{
-				if(dst->imageData[c])
-				{
-					glColor3d(mainmas[c*3+2],mainmas[c*3+2],mainmas[c*3+2]);
-					glVertex3d(mainmas[c*3]*0.01, mainmas[c*3+1]*0.01, mainmas[c*3+2]*10);
-				}
-			} 
+	//glBegin(GL_POINTS);
+	//		for(int c = 0; c<SCREEN_WIDTH*SCREEN_HEIGHT; c++)
+	//		{
+	//			if(dst->imageData[c])
+	//			{
+	//				glColor3d(mainmas[c*3+2],mainmas[c*3+2],mainmas[c*3+2]);
+	//				glVertex3d(mainmas[c*3]*0.01, mainmas[c*3+1]*0.01, mainmas[c*3+2]*10);
+	//			}
+	//		} 
 
-	glEnd();
+	//glEnd();
+	glPushMatrix();
+		glTranslated(10,5,0);
+		glutSolidCube(1);
+	glPopMatrix();
+	//glBegin(GL_LINES);
+	//glColor3d(1,0,0);
+	//glVertex3i(0,0,0);
+	//glVertex3i(500,0,0);
+	//glColor3d(0,1,0);
+	//glVertex3i(0,0,0);
+	//glVertex3i(0,500,0);
+	//glColor3d(0,0,1);
+	//glVertex3i(0,0,0);
+	//glVertex3i(0,0,500);
+	//glEnd();
 
-	glBegin(GL_LINES);
-	glColor3d(1,0,0);
-	glVertex3i(0,0,0);
-	glVertex3i(500,0,0);
-	glColor3d(0,1,0);
-	glVertex3i(0,0,0);
-	glVertex3i(0,500,0);
-	glColor3d(0,0,1);
-	glVertex3i(0,0,0);
-	glVertex3i(0,0,500);
-	glEnd();
+	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth2);
+
+
 	glFlush();
 	glutSwapBuffers();
-
 }
 
 void display(void)
@@ -307,6 +327,8 @@ void display(void)
 
 int main(int argc, char **argv)
 {
+	hwnd = GetConsoleHwnd();
+	SetWindowPos(hwnd,0,0,650,800,300,0);
 	Size.height = SCREEN_HEIGHT; Size.width = SCREEN_WIDTH;
 	img = cvCreateImage(Size, IPL_DEPTH_8U, 3);
 	gray = cvCreateImage(Size, IPL_DEPTH_8U, 1);
@@ -318,17 +340,19 @@ int main(int argc, char **argv)
 	glutDisplayFunc(display);
 	glutIdleFunc(idle);
 	glutKeyboardFunc(keybord);
-	glutMotionFunc(mouseMotion);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glutInitWindowPosition(850,0);
 	w2 = glutCreateWindow("OpenGL - Восстановление трёхмерной сцены");
 	glutSetWindow(w2);
 	glutDisplayFunc(display2);
 	glutKeyboardFunc(keybord2);
+	glutMouseFunc(mouse2);
 	depth = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
+	depth2 = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
 	mainmas = new float[SCREEN_WIDTH*SCREEN_HEIGHT*3];
 	glutMainLoop();
 	delete[]depth;
+	delete[]depth2;
 	return 0;
 }
 
@@ -438,3 +462,21 @@ void DrawWalls()
 		glVertex3d(100,30,0);
   glEnd();
 }
+
+HWND GetConsoleHwnd()
+   {
+       #define MY_BUFSIZE 1024 // Buffer size for console window titles.
+       HWND hwndFound;         // This is what is returned to the caller.
+       char pszNewWindowTitle[MY_BUFSIZE]; // Contains fabricated
+       char pszOldWindowTitle[MY_BUFSIZE]; // Contains original
+       GetConsoleTitle(pszOldWindowTitle, MY_BUFSIZE);
+       wsprintf(pszNewWindowTitle,"%d/%d",
+                   GetTickCount(),
+                   GetCurrentProcessId());
+       SetConsoleTitle(pszNewWindowTitle);
+       Sleep(40);
+       hwndFound=FindWindow(NULL, pszNewWindowTitle);
+
+       SetConsoleTitle(pszOldWindowTitle);
+       return(hwndFound);
+   }
