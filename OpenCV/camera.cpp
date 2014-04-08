@@ -9,37 +9,47 @@ Camera::Camera()
 		camPos[1] = 10;
 		camPos[2] = 30;
 	}
-	double Camera::GetX()
+	float Camera::GetX()
 	{
 		return camPos[0];
 	}
-	double Camera::GetY()
+	float Camera::GetY()
 	{
 		return camPos[1];
 	}
-	double Camera::GetZ()
+	float Camera::GetZ()
 	{
 		return camPos[2];
 	}
-	double Camera::GetAngleXOZ()
+	float Camera::GetAngleXOZ()
 	{
 		return a;
 	}
-	bool Camera::Rotate(int angleZ)
+	bool Camera::Rotate(float angleZ)
 	{
 		if(a==360) a = 0;
 		a+=angleZ;
 		return true;
 	}
-	bool Camera::MoveForward(int step)
+	bool Camera::MoveForward(float step)
 	{
 		camPos[0]-=step*sin(a*PI/180);
         camPos[2]+=step*cos(a*PI/180);
 		return true;
 	}
-	bool Camera::MoveBack(int step)
+	bool Camera::MoveBack(float step)
 	{
 		camPos[0]+=step*sin(a*PI/180);
 		camPos[2]-=step*cos(a*PI/180);
+		return true;
+	}
+	bool Camera::MoveUp(float step)
+	{
+		camPos[1]+=step;
+		return true;
+	}
+	bool Camera::MoveDown(float step)
+	{
+		camPos[1]+=step;
 		return true;
 	}

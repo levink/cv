@@ -32,8 +32,7 @@ using namespace std; //Определение пространства имён
 float *depth, *depth2, *mainmas;
 double angle = 0 /*Угол поворота камеры XOZ*/, step = 0 /*Шаг камеры*/, camLookAt[3] = {0,0,0}/*Направление взгляда камеры*/;
 int w1 = -1, w2 = -1, last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
-Camera MyCam; // Главный класс, отвечающий за управление камерой
-Camera2 MyCam2;
+Camera w1camera, w2camera; // Главный класс, отвечающий за управление камерой
 char *output, *color;
 long int t1 = 0;
 int *out;
@@ -107,8 +106,8 @@ public:
 double v[4][4] = {
 	{SCREEN_WIDTH/SCREEN_HEIGHT * TAN_30, 0, 0, 0},
 	{0, TAN_30, 0, 0},
-	{0, 0, 0, 1},
-	{0, 0, -0.495, 0.505}
+	{0, 0, 0, 0},
+    {0, 0, 1, 0}                //	{0, 0, -0.495, 0.505}
 };
 
 double v1[4][4] = {
@@ -128,26 +127,27 @@ void keybord(unsigned char key, int x, int y)
 	
 	if (key == 'w' || key == 246) // Движение вперед
 	{
-		MyCam.MoveForward(CAMERA_STEP);
+		w1camera.MoveForward(CAMERA_STEP);
 	}
 
 	if (key == 's' || key == 251) // Движение назад
 	{
-		MyCam.MoveBack(CAMERA_STEP);
+		w1camera.MoveBack(CAMERA_STEP);
 	}
 
 	if (key == 'a' || key == 244) // Поворот камеры направо
 	{
-		MyCam.Rotate(-CAMERA_STEP);
+		w1camera.Rotate(-CAMERA_STEP);
 	}
 
 	if (key == 'd' || key == 226) // Поворот камеры налево
 	{
-		MyCam.Rotate(CAMERA_STEP);
+		w1camera.Rotate(CAMERA_STEP);
 	}
 
 	glutPostRedisplay();
 }
+
 void keybord2(unsigned char key, int x, int y)
 {
 
@@ -158,40 +158,52 @@ void keybord2(unsigned char key, int x, int y)
 	
 	if (key == 'w' || key == 246) // Движение вперед
 	{
-		MyCam2.MoveForward(CAMERA_STEP);
+		w2camera.MoveForward(CAMERA_STEP);
 	}
 
 	if (key == 's' || key == 251) // Движение назад
 	{
-		MyCam2.MoveBack(CAMERA_STEP);
+		w2camera.MoveBack(CAMERA_STEP);
 	}
 
 	if (key == 'a' || key == 244) // Поворот камеры направо
 	{
-		MyCam2.Rotate(-CAMERA_STEP);
+		w2camera.Rotate(-CAMERA_STEP);
 	}
 
 	if (key == 'd' || key == 226) // Поворот камеры налево
 	{
-		MyCam2.Rotate(CAMERA_STEP);
+		w2camera.Rotate(CAMERA_STEP);
 	}
 
 	glutPostRedisplay();
 }
 
+double m[4] = {-3,3,-7,1};
+
 void mouse2(int button, int state, int x, int y)
 {
-	if(state == GLUT_DOWN && button == GLUT_LEFT_BUTTON) 
+	y = SCREEN_HEIGHT - y;
+	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth2);
+	int k = 0;
+	for(int i=0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
 	{
-		double m[4] = {0,5,10,1};
+		if(depth2[i] < 1)
+		{
+			k++;
+		}
+	}
+	
+	if(state == GLUT_DOWN && button == GLUT_LEFT_BUTTON)  
+	{
 		Vector4d b = Vector4d(m);
-		Matrix m1 = Matrix(v1);
+		Matrix m1 = Matrix(v);
 
 		Vector4d a = m1 * b;
 
-		std::cout << "[Window 2] Mouse X: " << x << ", Y: " << y << ", Z: " << (float)depth2[SCREEN_WIDTH*y+x] << std::endl << std::endl;
-		std::cout << "           Realc X: 10, Y: 5, Z: 0, W: 1" << std::endl;
-		std::cout << "           Vectr X: " << (int)a.e[0] << ", Y: " << (int)a.e[1] << std::endl << std::endl;
+		std::cout << "[Window 2] Mouse X: " << x << ", Y: " << y << ", depth: " << (float)depth2[SCREEN_WIDTH*y+x] << std::endl;
+		std::cout << "           Realc X: " << m[0] << ", Y: " << m[1] << ", Z: " << m[2] << std::endl;
+		std::cout << "           Vectr X: " << a.e[0] << ", Y: " << a.e[1]  << ", depth: " << a.e[2] << std::endl << std::endl;
 	}
 }
 
@@ -200,7 +212,11 @@ void idle(void)
 	// Команды поворота чайника 
 	angle+=1;
 	if(angle>360) angle = 0;
+	glutPostRedisplay();
+}
 
+void idle2(void)
+{
 	glutPostRedisplay();
 }
 
@@ -219,27 +235,16 @@ void display2(void)
 	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,100);
 	//glMatrixMode(GL_MODELVIEW);
 	//glLoadIdentity();
-	glRotated(90,0,1,0);
-	//glRotated(MyCam2.GetAngleXOZ(),0,1,0);
-	//glTranslated(-MyCam2.GetX(), -2.5, -MyCam2.GetZ());
-	//glColor3d(1,1,1);
-	//glPointSize(2);
 
-	//glBegin(GL_POINTS);
-	//		for(int c = 0; c<SCREEN_WIDTH*SCREEN_HEIGHT; c++)
-	//		{
-	//			if(dst->imageData[c])
-	//			{
-	//				glColor3d(mainmas[c*3+2],mainmas[c*3+2],mainmas[c*3+2]);
-	//				glVertex3d(mainmas[c*3]*0.01, mainmas[c*3+1]*0.01, mainmas[c*3+2]*10);
-	//			}
-	//		} 
+	glColor3d(1,1,1);
+	glPointSize(5.0);
+	glBegin(GL_POINTS);
+	glVertex3d(m[0],m[1],m[2]);
+	glEnd();
 
-	//glEnd();
-	glPushMatrix();
-		glTranslated(10,5,0);
-		glutSolidCube(1);
-	glPopMatrix();
+
+
+
 	//glBegin(GL_LINES);
 	//glColor3d(1,0,0);
 	//glVertex3i(0,0,0);
@@ -252,7 +257,7 @@ void display2(void)
 	//glVertex3i(0,0,500);
 	//glEnd();
 
-	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth2);
+	
 
 
 	glFlush();
@@ -282,47 +287,23 @@ void display(void)
 	glEnable(GL_DEPTH_TEST);
 	glLightfv(GL_LIGHT0, GL_POSITION, arr);
 	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,100);
-	//glFrustum(SCREEN_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_WIDTH, 1, 100);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
 	glRotated(180,0,1,0);
-	glRotated(MyCam.GetAngleXOZ(),0,1,0);
-	glTranslated(-MyCam.GetX(), -MyCam.GetY(), -MyCam.GetZ());
+	glRotated(w1camera.GetAngleXOZ(),0,1,0);
+	glTranslated(-w1camera.GetX(), -w1camera.GetY(), -w1camera.GetZ());
 
 	DrawTeapots();
 	DrawWalls();
 
 	//img->origin = IPL_ORIGIN_BL;
 	//gray->origin = IPL_ORIGIN_BL;
+
 	dst->origin = IPL_ORIGIN_BL;
 
-    glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
-	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
+ //   glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
+//	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
 
-	cvCvtColor(img, gray, CV_BGR2GRAY);
-	cvCanny(gray, dst, 10, 20, 3);
-
-	int y = 0, x = 0;
-	for(int i = 0; i<SCREEN_WIDTH*SCREEN_HEIGHT; i++)
-	{
-		if(x>=SCREEN_WIDTH)
-		{
-			x = 0;
-			y++;
-		}
-		mainmas[i*3] = x;
-		mainmas[i*3+1] = y;
-		mainmas[i*3+2] = depth[i];
-		x++;
-	}
-
-//	DrawFPS(img, fps, KMEANS_CLUSTERS);
 	glFlush();
 	glutSwapBuffers();
-	glutSetWindow(w2);
-	glutPostRedisplay();
-	glutSetWindow(w1);
-	//cvShowImage("Определение объектов", dst);	
 }
 
 int main(int argc, char **argv)
@@ -347,6 +328,7 @@ int main(int argc, char **argv)
 	glutDisplayFunc(display2);
 	glutKeyboardFunc(keybord2);
 	glutMouseFunc(mouse2);
+	glutIdleFunc(idle2);
 	depth = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
 	depth2 = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
 	mainmas = new float[SCREEN_WIDTH*SCREEN_HEIGHT*3];

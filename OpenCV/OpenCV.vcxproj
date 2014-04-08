@@ -72,7 +72,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
-    <ClCompile Include="camera2.cpp" />
     <ClCompile Include="kmeans.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
