@@ -10,6 +10,7 @@
 #define KMEANS_CLUSTERS 2
 #define CAMERA_STEP 1
 #define TAN_30 0.57735026918962576450914878050196
+#define CTAN_30 1.7320508075688772935274463415059
 
 void kmeans(
             int  dim,		                  // dimension of data 
@@ -37,7 +38,7 @@ char *output, *color;
 long int t1 = 0;
 int *out;
 
-GLfloat arr[4] = {50.0,30.0,50.0,1.0};
+GLfloat arr[4] = {50.0,10.0,50.0,1.0};
 GLfloat arr2[3] = {50.0,-1.0,50.0};
 GLfloat colorX[3] = {1,0,1};
 GLfloat colorY[3] = {0,0,1};
@@ -104,10 +105,10 @@ public:
 };
 
 double v[4][4] = {
-	{SCREEN_WIDTH/SCREEN_HEIGHT * TAN_30, 0, 0, 0},
-	{0, TAN_30, 0, 0},
-	{0, 0, 0, 0},
-    {0, 0, 1, 0}                //	{0, 0, -0.495, 0.505}
+	{(SCREEN_WIDTH/SCREEN_HEIGHT) / CTAN_30, 0, 0, 0},
+	{0, CTAN_30, 0, 0},
+	{0, 0, (100+1)/(1-100), (2*100*1)/(1-100)},
+    {0, 0, -1, 0}                //	{0, 0, -0.495, 0.505}
 };
 
 double v1[4][4] = {
@@ -179,19 +180,26 @@ void keybord2(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
-double m[4] = {-3,3,-7,1};
+double m[4] = {0,0,-3,1};
+
+/*
+z=1:       0.000
+z=1.5:     0.336
+z=2:       0.505
+z=50:      0.989
+z=75:      0.996
+z=99.999:  1
+*/
+
 
 void mouse2(int button, int state, int x, int y)
 {
-	y = SCREEN_HEIGHT - y;
+	//y = SCREEN_HEIGHT - y;
 	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth2);
 	int k = 0;
 	for(int i=0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
 	{
-		if(depth2[i] < 1)
-		{
-			k++;
-		}
+		if(depth2[i] < 1) k++;
 	}
 	
 	if(state == GLUT_DOWN && button == GLUT_LEFT_BUTTON)  
@@ -202,6 +210,7 @@ void mouse2(int button, int state, int x, int y)
 		Vector4d a = m1 * b;
 
 		std::cout << "[Window 2] Mouse X: " << x << ", Y: " << y << ", depth: " << (float)depth2[SCREEN_WIDTH*y+x] << std::endl;
+		std::cout << "           Depth (Formula): " << ((100+1)/(100-1)) + ((-2*100*1)/(m[2]*(100-1))) << std::endl;
 		std::cout << "           Realc X: " << m[0] << ", Y: " << m[1] << ", Z: " << m[2] << std::endl;
 		std::cout << "           Vectr X: " << a.e[0] << ", Y: " << a.e[1]  << ", depth: " << a.e[2] << std::endl << std::endl;
 	}
@@ -290,6 +299,7 @@ void display(void)
 	glRotated(180,0,1,0);
 	glRotated(w1camera.GetAngleXOZ(),0,1,0);
 	glTranslated(-w1camera.GetX(), -w1camera.GetY(), -w1camera.GetZ());
+
 
 	DrawTeapots();
 	DrawWalls();
