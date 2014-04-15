@@ -25,14 +25,17 @@ void DrawTeapots();
 void DrawWalls();
 HWND GetConsoleHwnd();
 
-const int SCREEN_WIDTH = 800;  // Разрешение окона OpenGL&CV по горизонтали
-const int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
+int SCREEN_WIDTH = 800;  // Разрешение окона OpenGL&CV по горизонтали
+int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
 
 using namespace std; //Определение пространства имён
 
+bool FullScreen = false;
+
 float *depth, *depth2, *mainmas;
 double angle = 0 /*Угол поворота камеры XOZ*/, step = 0 /*Шаг камеры*/, camLookAt[3] = {0,0,0}/*Направление взгляда камеры*/;
-int w1 = -1, w2 = -1, last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
+int last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
+int w1 = 0, w2 = 0;
 Camera w1camera, w2camera; // Главный класс, отвечающий за управление камерой
 char *output, *color;
 long int t1 = 0;
@@ -123,7 +126,17 @@ void keybord(unsigned char key, int x, int y)
 {
 	if (key == 'j' || key == 238)
 	{
-	
+		if(!FullScreen)
+		{
+			glutFullScreen();
+			FullScreen = true;
+		}
+		else
+		{
+			glutReshapeWindow(800,600);
+			FullScreen = false;
+		}
+
 	}
 	
 	if (key == 'w' || key == 246) // Движение вперед
@@ -154,7 +167,7 @@ void keybord2(unsigned char key, int x, int y)
 
 	if (key == 'j' || key == 238)
 	{
-	
+		
 	}
 	
 	if (key == 'w' || key == 246) // Движение вперед
@@ -195,6 +208,7 @@ z=99.999:  1
 void mouse2(int button, int state, int x, int y)
 {
 	//y = SCREEN_HEIGHT - y;
+	depth2 = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
 	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth2);
 	int k = 0;
 	for(int i=0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
@@ -209,11 +223,12 @@ void mouse2(int button, int state, int x, int y)
 
 		Vector4d a = m1 * b;
 
-		std::cout << "[Window 2] Mouse X: " << x << ", Y: " << y << ", depth: " << (float)depth2[SCREEN_WIDTH*y+x] << std::endl;
-		std::cout << "           Depth (Formula): " << ((100+1)/(100-1)) + ((-2*100*1)/(m[2]*(100-1))) << std::endl;
-		std::cout << "           Realc X: " << m[0] << ", Y: " << m[1] << ", Z: " << m[2] << std::endl;
-		std::cout << "           Vectr X: " << a.e[0] << ", Y: " << a.e[1]  << ", depth: " << a.e[2] << std::endl << std::endl;
+		std::cout << "[Окно 2] Мышь X: " << x << ", Y: " << y << ", глубина: " << (float)depth2[SCREEN_WIDTH*y+x] << std::endl;
+		std::cout << "         Глубина (формула): " << ((100+1)/(100-1)) + ((-2*100*1)/(m[2]*(100-1))) << std::endl;
+		std::cout << "         Реальный X: " << m[0] << ", Y: " << m[1] << ", Z: " << m[2] << std::endl;
+		std::cout << "         Вектор   X: " << a.e[0] << ", Y: " << a.e[1]  << ", depth: " << a.e[2] << std::endl << std::endl;
 	}
+	delete[]depth2;
 }
 
 void idle(void)
@@ -241,7 +256,8 @@ void display2(void)
 	//glLightfv(GL_LIGHT0, GL_SPECULAR, amb);
 	glEnable(GL_DEPTH_TEST);
 	//glLightfv(GL_LIGHT0, GL_POSITION, arr);
-	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,100);
+	gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	//glMatrixMode(GL_MODELVIEW);
 	//glLoadIdentity();
 
@@ -284,7 +300,6 @@ void display(void)
 		fpstmp = 0;
 		t1=t2;
 	} else fpstmp++;
-
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -295,11 +310,11 @@ void display(void)
 	glLightfv(GL_LIGHT0, GL_SPECULAR, amb);
 	glEnable(GL_DEPTH_TEST);
 	glLightfv(GL_LIGHT0, GL_POSITION, arr);
-	gluPerspective(60,SCREEN_WIDTH/SCREEN_HEIGHT,1,100);
+	gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glRotated(180,0,1,0);
 	glRotated(w1camera.GetAngleXOZ(),0,1,0);
 	glTranslated(-w1camera.GetX(), -w1camera.GetY(), -w1camera.GetZ());
-
 
 	DrawTeapots();
 	DrawWalls();
@@ -316,8 +331,16 @@ void display(void)
 	glutSwapBuffers();
 }
 
+void reshape(int weight, int height)
+{
+	SCREEN_HEIGHT = height;
+	SCREEN_WIDTH = weight;
+	glutPostRedisplay();
+}
+
 int main(int argc, char **argv)
 {
+	setlocale(LC_ALL, "RUS");
 	hwnd = GetConsoleHwnd();
 	SetWindowPos(hwnd,0,0,650,800,300,0);
 	Size.height = SCREEN_HEIGHT; Size.width = SCREEN_WIDTH;
@@ -331,6 +354,7 @@ int main(int argc, char **argv)
 	glutDisplayFunc(display);
 	glutIdleFunc(idle);
 	glutKeyboardFunc(keybord);
+	glutReshapeFunc(reshape);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glutInitWindowPosition(850,0);
 	w2 = glutCreateWindow("OpenGL - Восстановление трёхмерной сцены");
@@ -340,7 +364,6 @@ int main(int argc, char **argv)
 	glutMouseFunc(mouse2);
 	glutIdleFunc(idle2);
 	depth = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
-	depth2 = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
 	mainmas = new float[SCREEN_WIDTH*SCREEN_HEIGHT*3];
 	glutMainLoop();
 	delete[]depth;
