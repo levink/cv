@@ -16,3 +16,4 @@ public:
 	bool MoveUp(float step);
 	bool MoveDown(float step);
 };
+

@@ -7,7 +7,6 @@
 #include "scene.h"
 #include "glut.h"          
 
-#define CAMERA_STEP 0.4
 #define TAN_30 0.57735026918962576450914878050196
 #define CTAN_30 1.7320508075688772935274463415059
 
@@ -26,6 +25,7 @@ HWND GetConsoleHwnd();
 
 int SCREEN_WIDTH = 800;  // Разрешение окона OpenGL&CV по горизонтали
 int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
+float CAMERA_STEP = 0.4;
 
 using namespace std; //Определение пространства имён
 
@@ -33,7 +33,7 @@ bool FullScreen = false, MoveForward = false, MoveBack = false,
 	 RotateLeft = false, RotateRight = false, MoveUp = false, MoveDown = false;
 
 float *depth, *depth2, *mainmas;
-double angle = 0 /*Угол поворота камеры XOZ*/, step = 0 /*Шаг камеры*/, camLookAt[3] = {0,0,0}/*Направление взгляда камеры*/;
+double angle = 0 /*Угол поворота камеры XOZ*/, step = 0 /*Шаг камеры*/;
 int last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
 int w1 = 0, w2 = 0;
 Camera w1camera = Camera(30,10,30,-45), w2camera = Camera(0,0,0,0); // Главный класс, отвечающий за управление камерой
@@ -138,6 +138,14 @@ void keybord(unsigned char key, int x, int y)
 		}
 
 	}
+
+	if (key == 'k' || key == 235)
+	{
+		cout << "Текущие координаты: X: " << (int)w1camera.GetX() << ", Y: " << (int)w1camera.GetY() << ", Z: " << (int)w1camera.GetZ() << ", угол: " << (int)w1camera.GetAngleXOZ() << endl;
+		cout << "Разрешение окна: " << SCREEN_WIDTH << "x" << SCREEN_HEIGHT << endl;
+		cout << "Шаг камеры: " << CAMERA_STEP << endl;
+		cout << endl;
+	}
 	
 	if (key == 'w' || key == 246) // Движение вперед
 	{
@@ -174,6 +182,16 @@ void keybord(unsigned char key, int x, int y)
 		MoveDown = true;
 	}
 
+	if (key == '=' || key == 61) 
+	{
+		CAMERA_STEP+=0.02;
+	}
+	if (key == '-' || key == 45) 
+	{
+		CAMERA_STEP-=0.02;
+	}
+
+//	cout << (int)key << endl;
 	glutPostRedisplay();
 }
 
@@ -379,16 +397,12 @@ void display(void)
 	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
 	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
 	glEnable(GL_LIGHTING);
-
-
-
-
 	
 	gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glRotated(180,0,1,0);
 	glRotated(w1camera.GetAngleXOZ(),0,1,0);
-	glTranslated(-w1camera.GetX(), -w1camera.GetY(), -w1camera.GetZ());
+	glTranslated(-w1camera.GetX(),-w1camera.GetY(), -w1camera.GetZ());
 
 	DrawTeapots();
 	DrawWalls();

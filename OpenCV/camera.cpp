@@ -54,3 +54,4 @@ Camera::Camera(float x, float y, float z, float angle)
 		camPos[1]-=step;
 		return true;
 	}
+
