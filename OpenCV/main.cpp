@@ -7,8 +7,7 @@
 #include "scene.h"
 #include "glut.h"          
 
-#define KMEANS_CLUSTERS 2
-#define CAMERA_STEP 1
+#define CAMERA_STEP 0.4
 #define TAN_30 0.57735026918962576450914878050196
 #define CTAN_30 1.7320508075688772935274463415059
 
@@ -30,13 +29,14 @@ int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
 
 using namespace std; //Определение пространства имён
 
-bool FullScreen = false;
+bool FullScreen = false, MoveForward = false, MoveBack = false, 	
+	 RotateLeft = false, RotateRight = false, MoveUp = false, MoveDown = false;
 
 float *depth, *depth2, *mainmas;
 double angle = 0 /*Угол поворота камеры XOZ*/, step = 0 /*Шаг камеры*/, camLookAt[3] = {0,0,0}/*Направление взгляда камеры*/;
 int last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
 int w1 = 0, w2 = 0;
-Camera w1camera, w2camera; // Главный класс, отвечающий за управление камерой
+Camera w1camera = Camera(30,10,30,-45), w2camera = Camera(0,0,0,0); // Главный класс, отвечающий за управление камерой
 char *output, *color;
 long int t1 = 0;
 int *out;
@@ -142,25 +142,74 @@ void keybord(unsigned char key, int x, int y)
 	if (key == 'w' || key == 246) // Движение вперед
 	{
 		w1camera.MoveForward(CAMERA_STEP);
+		MoveForward = true;
 	}
 
 	if (key == 's' || key == 251) // Движение назад
 	{
 		w1camera.MoveBack(CAMERA_STEP);
+		MoveBack = true;
 	}
 
 	if (key == 'a' || key == 244) // Поворот камеры направо
 	{
 		w1camera.Rotate(-CAMERA_STEP);
+		RotateLeft = true;
 	}
 
 	if (key == 'd' || key == 226) // Поворот камеры налево
 	{
 		w1camera.Rotate(CAMERA_STEP);
+		RotateRight = true;
+	}
+
+	if (key == 'r' || key == 234) // Поворот камеры налево
+	{
+		w1camera.MoveUp(CAMERA_STEP);
+		MoveUp = true;
+	}
+	if (key == 'f' || key == 224) // Поворот камеры налево
+	{
+		w1camera.MoveDown(CAMERA_STEP);
+		MoveDown = true;
 	}
 
 	glutPostRedisplay();
 }
+
+void keybordUp(unsigned char key, int x, int y)
+{
+	if (key == 'w' || key == 246) 
+	{
+		MoveForward = false;
+	}
+
+	if (key == 's' || key == 251) 
+	{
+		MoveBack = false;
+	}
+
+	if (key == 'a' || key == 244) 
+	{
+		RotateLeft = false;
+	}
+
+	if (key == 'd' || key == 226)
+	{
+		RotateRight = false;
+	}
+
+	if (key == 'r' || key == 234)
+	{
+		MoveUp = false;
+	}
+	if (key == 'f' || key == 224) 
+	{
+		MoveDown = false;
+	}
+
+}
+
 
 void keybord2(unsigned char key, int x, int y)
 {
@@ -195,16 +244,6 @@ void keybord2(unsigned char key, int x, int y)
 
 double m[4] = {0,0,-3,1};
 
-/*
-z=1:       0.000
-z=1.5:     0.336
-z=2:       0.505
-z=50:      0.989
-z=75:      0.996
-z=99.999:  1
-*/
-
-
 void mouse2(int button, int state, int x, int y)
 {
 	//y = SCREEN_HEIGHT - y;
@@ -234,8 +273,6 @@ void mouse2(int button, int state, int x, int y)
 void idle(void)
 {
 	// Команды поворота чайника 
-	angle+=1;
-	if(angle>360) angle = 0;
 	glutPostRedisplay();
 }
 
@@ -294,22 +331,59 @@ void display(void)
 
 	/* Определение количества кадров в секунду (FPS)*/
 	long int t2 = GetTickCount(); 
+
+	if(t2-t1>10)
+	{
+		if(MoveForward)
+		{
+			w1camera.MoveForward(CAMERA_STEP);
+		}
+		if(MoveBack)
+		{
+			w1camera.MoveBack(CAMERA_STEP);
+		}
+		if(RotateLeft)
+		{
+			w1camera.Rotate(-CAMERA_STEP);
+		}
+		if(RotateRight)
+		{
+			w1camera.Rotate(CAMERA_STEP);
+		}
+		if(MoveUp)
+		{
+			w1camera.MoveUp(CAMERA_STEP);
+		}
+		if(MoveDown)
+		{
+			w1camera.MoveDown(CAMERA_STEP);
+		}
+	}
+
+
 	if(t2-t1>1000)
 	{
 		fps = fpstmp;
 		fpstmp = 0;
 		t1=t2;
+
+
 	} else fpstmp++;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	glShadeModel(GL_SMOOTH);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, amb);
+
 	glEnable(GL_DEPTH_TEST);
-	glLightfv(GL_LIGHT0, GL_POSITION, arr);
+	GLfloat ambient[] = {0.2, 0.2, 0.2, 1.0}; 
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
+	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+	glEnable(GL_LIGHTING);
+
+
+
+
+	
 	gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glRotated(180,0,1,0);
@@ -326,6 +400,8 @@ void display(void)
 
  //   glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
 //	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
+
+	
 
 	glFlush();
 	glutSwapBuffers();
@@ -355,6 +431,7 @@ int main(int argc, char **argv)
 	glutIdleFunc(idle);
 	glutKeyboardFunc(keybord);
 	glutReshapeFunc(reshape);
+	glutKeyboardUpFunc(keybordUp);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glutInitWindowPosition(850,0);
 	w2 = glutCreateWindow("OpenGL - Восстановление трёхмерной сцены");
@@ -389,24 +466,81 @@ void DrawTeapots()
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorTeapot);
   
 	glPushMatrix();
-	glTranslated(95,9.5,65);
-//	glRotated(angle,0,1,0);
+	float pos[4] = {25.0, 20.0, 25.0, 0.6};
+	glLightfv(GL_LIGHT0, GL_POSITION, pos);
+	glEnable(GL_LIGHT0);
+	glPopMatrix();
+
+	glNormal3d(0,1,0);
+
+	glPushMatrix();
+	glTranslated(95,7,5);
+	glRotated(angle,0,1,0);
+	glRotated(-90,1,0,0);
+	glutSolidCone(4,4,10,10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(95,10,20);
+	glRotated(angle,0,1,0);
+	glRotated(90,0,1,0);
+	glutSolidTorus(1,2,50,50);
+	glPopMatrix();
+
+
+	glPushMatrix();
+	glTranslated(95,10,35);
+	glRotated(angle,0,1,0);
+	glutWireSphere(3,100,100);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(95,9,65);
+	glRotated(angle,0,1,0);
 	glutSolidTeapot(3);
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslated(95,9.5,80);
-//	glRotated(angle,0,1,0);
+	glTranslated(95,9,80);
+	glRotated(angle,0,1,0);
 	glutSolidDodecahedron();
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslated(95, 9.5, 50);
-//	glRotated(-angle,0,1,0);
+	glTranslated(95,9,95);
+	glRotated(angle,0,1,0);
+	glutWireCube(3);
+	glPopMatrix();
+
+
+
+	glPushMatrix();
+	glTranslated(95, 9, 50);
+	glRotated(-angle,0,1,0);
 	glutWireTeapot(3);
 	glPopMatrix();
 
+
+	glNormal3d(1,1,0);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorA);
+
+
+	glPushMatrix();
+	glTranslated(95, 2, 5);
+	glutSolidCube(10);
+	glPopMatrix();
+
+
+	glPushMatrix();
+	glTranslated(95, 2, 20);
+	glutSolidCube(10);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(95, 2, 35);
+	glutSolidCube(10);
+	glPopMatrix();
+
 	glPushMatrix();
 	glTranslated(95, 2, 50);
 	glutSolidCube(10);
@@ -423,22 +557,28 @@ void DrawTeapots()
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslated(95, 2, 40);
-	glutSolidOctahedron();
-	glScaled(2.0,2.0,2.0);
+	glTranslated(95, 2, 95);
+	glutSolidCube(10);
 	glPopMatrix();
+
 
 }
 
 void DrawWalls()
 {
+	glNormal3d(0,1,0);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorY);
-  glBegin(GL_QUADS);
+ 
+	glBegin(GL_QUADS);
 		glVertex3d(100,-1,100);
 		glVertex3d(100,-1,0);
 		glVertex3d(0,-1,0);
 		glVertex3d(0,-1,100);
   glEnd();
+
+
+
+
 
   glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorX);
 

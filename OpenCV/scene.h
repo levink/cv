@@ -5,7 +5,7 @@ class Camera
 private:
 	float camPos[3], a;
 public:
-	Camera();
+	Camera(float x , float y, float z, float angle);
 	float GetX();
 	float GetY();
 	float GetZ();

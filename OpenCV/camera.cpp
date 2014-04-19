@@ -1,13 +1,13 @@
 #include "scene.h"
 #include <cmath>
 
-const float PI =3.141592653;
+const float PI =3.1415926535897932384626433832795;
 
-Camera::Camera()
+Camera::Camera(float x, float y, float z, float angle)
 	{
-		camPos[0] = 30; a = 0;
-		camPos[1] = 10;
-		camPos[2] = 30;
+		camPos[0] = x; a = angle;
+		camPos[1] = y;
+		camPos[2] = z;
 	}
 	float Camera::GetX()
 	{
@@ -27,8 +27,9 @@ Camera::Camera()
 	}
 	bool Camera::Rotate(float angleZ)
 	{
-		if(a==360) a = 0;
 		a+=angleZ;
+		if(a>359) a-=360;
+		if(a<-359)a+=360;
 		return true;
 	}
 	bool Camera::MoveForward(float step)
@@ -50,6 +51,6 @@ Camera::Camera()
 	}
 	bool Camera::MoveDown(float step)
 	{
-		camPos[1]+=step;
+		camPos[1]-=step;
 		return true;
 	}

@@ -21,15 +21,9 @@
     <ClCompile Include="camera.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
-    <ClCompile Include="kmeans.cpp">
-      <Filter>Файлы исходного кода</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scene.h">
-      <Filter>Заголовочные файлы</Filter>
-    </ClInclude>
-    <ClInclude Include="kmeans.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
   </ItemGroup>
