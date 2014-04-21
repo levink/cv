@@ -10,14 +10,6 @@
 #define TAN_30 0.57735026918962576450914878050196
 #define CTAN_30 1.7320508075688772935274463415059
 
-void kmeans(
-            int  dim,		                  // dimension of data 
-            float *X,                        // pointer to data
-            int   n,                          // number of elements
-            int   k,                          // number of clusters
-            float *cluster_centroid,         // initial cluster centroids
-            int   *cluster_assignment_final   // output
-           );
 void DrawFPS(IplImage * pic, int _fps, int clusters);
 void DrawTeapots();
 void DrawWalls();
@@ -32,24 +24,20 @@ using namespace std; //Определение пространства имён
 bool FullScreen = false, MoveForward = false, MoveBack = false, 	
 	 RotateLeft = false, RotateRight = false, MoveUp = false, MoveDown = false;
 
-float *depth, *depth2, *mainmas;
-double angle = 0 /*Угол поворота камеры XOZ*/, step = 0 /*Шаг камеры*/;
-int last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/;
-int w1 = 0, w2 = 0;
+float *depth, *depth2, *mainmas, angle = 0/*Угол поворота камеры XOZ*/;
+int last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/, w1 = 0, w2 = 0;
 Camera w1camera = Camera(30,10,30,-45), w2camera = Camera(0,0,0,0); // Главный класс, отвечающий за управление камерой
 char *output, *color;
 long int t1 = 0;
-int *out;
 
-GLfloat arr[4] = {50.0,10.0,50.0,1.0};
-GLfloat arr2[3] = {50.0,-1.0,50.0};
-GLfloat colorX[3] = {1,0,1};
-GLfloat colorY[3] = {0,0,1};
-GLfloat colorZ[3] = {1,0,0};
-GLfloat colorA[3] = {1,1,0};
-GLfloat colorBlack[3] = {0.5,0.3,0.2};
-GLfloat amb[4] = {0,1,0,0};
-GLfloat colorTeapot[3] = {0,1,0};
+float arr[4] = {50.0,10.0,50.0,1.0}, arr2[3] = {50.0,-1.0,50.0};
+float colorX[3] = {1,0,1};
+float colorY[3] = {0,0,1};
+float colorZ[3] = {1,0,0};
+float colorA[3] = {1,1,0};
+float colorBlack[3] = {0.5,0.3,0.2};
+float amb[4] = {0,1,0,0};
+float colorTeapot[3] = {0,1,0};
 
 HWND hwnd = NULL;
 
@@ -141,9 +129,11 @@ void keybord(unsigned char key, int x, int y)
 
 	if (key == 'k' || key == 235)
 	{
+		cout << "[Окно 1] Состояние" << endl;
 		cout << "Текущие координаты: X: " << (int)w1camera.GetX() << ", Y: " << (int)w1camera.GetY() << ", Z: " << (int)w1camera.GetZ() << ", угол: " << (int)w1camera.GetAngleXOZ() << endl;
 		cout << "Разрешение окна: " << SCREEN_WIDTH << "x" << SCREEN_HEIGHT << endl;
 		cout << "Шаг камеры: " << CAMERA_STEP << endl;
+		cout << "FPS: " << fps << endl;
 		cout << endl;
 	}
 	
@@ -239,22 +229,22 @@ void keybord2(unsigned char key, int x, int y)
 	
 	if (key == 'w' || key == 246) // Движение вперед
 	{
-		w2camera.MoveForward(CAMERA_STEP);
+		w2camera.MoveForward(CAMERA_STEP*10);
 	}
 
 	if (key == 's' || key == 251) // Движение назад
 	{
-		w2camera.MoveBack(CAMERA_STEP);
+		w2camera.MoveBack(CAMERA_STEP*10);
 	}
 
 	if (key == 'a' || key == 244) // Поворот камеры направо
 	{
-		w2camera.Rotate(-CAMERA_STEP);
+		w2camera.Rotate(-CAMERA_STEP*10);
 	}
 
 	if (key == 'd' || key == 226) // Поворот камеры налево
 	{
-		w2camera.Rotate(CAMERA_STEP);
+		w2camera.Rotate(CAMERA_STEP*10);
 	}
 
 	glutPostRedisplay();
@@ -304,17 +294,10 @@ void display2(void)
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	//glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-	//glEnable(GL_LIGHT0);
-	//glShadeModel(GL_SMOOTH);
-	//glLightfv(GL_LIGHT0, GL_SPECULAR, amb);
 	glEnable(GL_DEPTH_TEST);
-	//glLightfv(GL_LIGHT0, GL_POSITION, arr);
+
 	gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	//glMatrixMode(GL_MODELVIEW);
-	//glLoadIdentity();
 
 	glColor3d(1,1,1);
 	glPointSize(5.0);
@@ -322,20 +305,21 @@ void display2(void)
 	glVertex3d(m[0],m[1],m[2]);
 	glEnd();
 
+	glRotated(w2camera.GetAngleXOZ(),0,1,0);
+	glTranslated(-w2camera.GetX(),-w2camera.GetY(), -w2camera.GetZ());
 
 
-
-	//glBegin(GL_LINES);
-	//glColor3d(1,0,0);
-	//glVertex3i(0,0,0);
-	//glVertex3i(500,0,0);
-	//glColor3d(0,1,0);
-	//glVertex3i(0,0,0);
-	//glVertex3i(0,500,0);
-	//glColor3d(0,0,1);
-	//glVertex3i(0,0,0);
-	//glVertex3i(0,0,500);
-	//glEnd();
+	glBegin(GL_LINES);
+	glColor3d(1,0,0);
+	glVertex3i(0,0,0);
+	glVertex3i(500,0,0);
+	glColor3d(0,1,0);
+	glVertex3i(0,0,0);
+	glVertex3i(0,500,0);
+	glColor3d(0,0,1);
+	glVertex3i(0,0,0);
+	glVertex3i(0,0,500);
+	glEnd();
 
 	
 
@@ -379,14 +363,14 @@ void display(void)
 	}
 
 
-	if(t2-t1>1000)
+	if(t2-t1>1000) 
 	{
 		fps = fpstmp;
 		fpstmp = 0;
-		t1=t2;
+		t1=t2; 
+	} 
+	else fpstmp++;
 
-
-	} else fpstmp++;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -407,12 +391,11 @@ void display(void)
 	DrawTeapots();
 	DrawWalls();
 
-	//img->origin = IPL_ORIGIN_BL;
-	//gray->origin = IPL_ORIGIN_BL;
+//  img->origin = IPL_ORIGIN_BL;
+//  gray->origin = IPL_ORIGIN_BL;
+//	dst->origin = IPL_ORIGIN_BL;
 
-	dst->origin = IPL_ORIGIN_BL;
-
- //   glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
+//  glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
 //	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
 
 	
