@@ -13,6 +13,8 @@
 void DrawFPS(IplImage * pic, int _fps, int clusters);
 void DrawTeapots();
 void DrawWalls();
+float GetZ(float z);
+
 HWND GetConsoleHwnd();
 
 int SCREEN_WIDTH = 800;  // Разрешение окона OpenGL&CV по горизонтали
@@ -26,7 +28,7 @@ bool FullScreen = false, MoveForward = false, MoveBack = false,
 
 float *depth, *depth2, *mainmas, angle = 0/*Угол поворота камеры XOZ*/;
 int last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/, w1 = 0, w2 = 0;
-Camera w1camera = Camera(30,10,30,-45), w2camera = Camera(0,0,0,0); // Главный класс, отвечающий за управление камерой
+Camera w1camera = Camera(30,10,30,-45), w2camera = Camera(0,0,0,180); // Главный класс, отвечающий за управление камерой
 char *output, *color;
 long int t1 = 0;
 
@@ -184,7 +186,6 @@ void keybord(unsigned char key, int x, int y)
 //	cout << (int)key << endl;
 	glutPostRedisplay();
 }
-
 void keybordUp(unsigned char key, int x, int y)
 {
 	if (key == 'w' || key == 246) 
@@ -219,12 +220,19 @@ void keybordUp(unsigned char key, int x, int y)
 }
 
 
+double m[4] = {0,0,-1,1};
+
+
 void keybord2(unsigned char key, int x, int y)
 {
 
-	if (key == 'j' || key == 238)
+	if (key == '=')
 	{
-		
+		m[2]--;
+	}
+	if (key == '-')
+	{
+		m[2]++;
 	}
 	
 	if (key == 'w' || key == 246) // Движение вперед
@@ -250,7 +258,7 @@ void keybord2(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
-double m[4] = {0,0,-3,1};
+
 
 void mouse2(int button, int state, int x, int y)
 {
@@ -271,7 +279,12 @@ void mouse2(int button, int state, int x, int y)
 		Vector4d a = m1 * b;
 
 		std::cout << "[Окно 2] Мышь X: " << x << ", Y: " << y << ", глубина: " << (float)depth2[SCREEN_WIDTH*y+x] << std::endl;
-		std::cout << "         Глубина (формула): " << ((100+1)/(100-1)) + ((-2*100*1)/(m[2]*(100-1))) << std::endl;
+
+		if((float)depth2[SCREEN_WIDTH*y+x]<1)
+		std::cout << "         Глубина (формула): " << ((float)( ((100.0+1)/(100.0-1)) + ((-2*100*1.0)/((float)m[2]*(100.0-1)))  )) << std::endl;
+		else
+		std::cout << "         Глубина (формула): " << ((100+1)/(100-1)) + ((-2*100*1)/(-100.0*(100-1)))<< std::endl;
+
 		std::cout << "         Реальный X: " << m[0] << ", Y: " << m[1] << ", Z: " << m[2] << std::endl;
 		std::cout << "         Вектор   X: " << a.e[0] << ", Y: " << a.e[1]  << ", depth: " << a.e[2] << std::endl << std::endl;
 	}
@@ -299,14 +312,16 @@ void display2(void)
 	gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+	//glRotated(w2camera.GetAngleXOZ(),0,1,0);
+	//glTranslated(-w2camera.GetX(),-w2camera.GetY(), -w2camera.GetZ());
+
+	glPushMatrix();
 	glColor3d(1,1,1);
 	glPointSize(5.0);
 	glBegin(GL_POINTS);
 	glVertex3d(m[0],m[1],m[2]);
 	glEnd();
-
-	glRotated(w2camera.GetAngleXOZ(),0,1,0);
-	glTranslated(-w2camera.GetX(),-w2camera.GetY(), -w2camera.GetZ());
+	glPopMatrix();
 
 
 	glBegin(GL_LINES);
@@ -632,3 +647,10 @@ HWND GetConsoleHwnd()
        SetConsoleTitle(pszOldWindowTitle);
        return(hwndFound);
    }
+
+float GetZ(float z)
+{
+	zFar = 100;
+	zNear = 1;
+	
+}
