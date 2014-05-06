@@ -1,8 +1,6 @@
-//Подключение необходимых библиотек
 #include <highgui.h>
 #include <cv.h>
 #include <iostream>
-#include <string>
 #include <Windows.h>
 #include "scene.h"
 #include "glut.h"          
@@ -10,6 +8,7 @@
 #define TAN_30 0.57735026918962576450914878050196
 #define CTAN_30 1.7320508075688772935274463415059
 
+float LinearDepth(float depth, float Near, float Far);
 void DrawFPS(IplImage * pic, int _fps, int clusters);
 void DrawTeapots();
 void DrawWalls();
@@ -17,8 +16,8 @@ float GetZ(float z);
 
 HWND GetConsoleHwnd();
 
-int SCREEN_WIDTH = 800;  // Разрешение окона OpenGL&CV по горизонтали
-int SCREEN_HEIGHT = 600;  // Разрешение окона OpenGL&CV по вертикали
+int SCREEN_WIDTH = 800,  /*Разрешение окона OpenGL&CV по горизонтали*/ 
+	SCREEN_HEIGHT = 600; /*Разрешение окона OpenGL&CV по вертикали*/
 float CAMERA_STEP = 0.4;
 
 using namespace std; //Определение пространства имён
@@ -32,14 +31,9 @@ Camera w1camera = Camera(30,10,30,-45), w2camera = Camera(0,0,0,180); // Главный
 char *output, *color;
 long int t1 = 0;
 
-float arr[4] = {50.0,10.0,50.0,1.0}, arr2[3] = {50.0,-1.0,50.0};
-float colorX[3] = {1,0,1};
-float colorY[3] = {0,0,1};
-float colorZ[3] = {1,0,0};
-float colorA[3] = {1,1,0};
-float colorBlack[3] = {0.5,0.3,0.2};
-float amb[4] = {0,1,0,0};
-float colorTeapot[3] = {0,1,0};
+float arr[4] = {50.0,10.0,50.0,1.0}, arr2[3] = {50.0,-1.0,50.0}, colorBlack[3] = {0.5,0.3,0.2},
+	  colorX[3] = {1,0,1}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0}, colorA[3] = {1,1,0},
+	  colorTeapot[3] = {0,1,0}, amb[4] = {0,1,0,0};
 
 HWND hwnd = NULL;
 
@@ -101,15 +95,29 @@ double v[4][4] = {
 	{(SCREEN_WIDTH/SCREEN_HEIGHT) / CTAN_30, 0, 0, 0},
 	{0, CTAN_30, 0, 0},
 	{0, 0, (100+1)/(1-100), (2*100*1)/(1-100)},
-    {0, 0, -1, 0}                //	{0, 0, -0.495, 0.505}
+    {0, 0, -1, 0}    
 };
 
+
+double n = 1;
+double r = 0.5;
+double t = 0.5*3/4;
+double f = 10;
+
 double v1[4][4] = {
-	{1/(SCREEN_WIDTH/SCREEN_HEIGHT)*TAN_30, 0, 0, 0},
-	{0, 1/TAN_30, 0, 0},
-	{0, 0, 101/99, 200/-99},
-	{0, 0, 1, 0}
+	{n/r, 0, 0, 0},
+	{0, n/t, 0, 0},
+	{0, 0, (f+n)/(n-f), (2*f*n)/(n-f)},
+    {0, 0, -1, 0}    
 };
+
+//
+//double v1[4][4] = {
+//	{1/(SCREEN_WIDTH/SCREEN_HEIGHT)*TAN_30, 0, 0, 0},
+//	{0, 1/TAN_30, 0, 0},
+//	{0, 0, 101/99, 200/-99},
+//	{0, 0, 1, 0}
+//};
 
 
 void keybord(unsigned char key, int x, int y)
@@ -186,6 +194,7 @@ void keybord(unsigned char key, int x, int y)
 //	cout << (int)key << endl;
 	glutPostRedisplay();
 }
+
 void keybordUp(unsigned char key, int x, int y)
 {
 	if (key == 'w' || key == 246) 
@@ -220,8 +229,7 @@ void keybordUp(unsigned char key, int x, int y)
 }
 
 
-double m[4] = {0,0,-1,1};
-
+double m[4] = {0,0,-2,1};
 
 void keybord2(unsigned char key, int x, int y)
 {
@@ -237,56 +245,39 @@ void keybord2(unsigned char key, int x, int y)
 	
 	if (key == 'w' || key == 246) // Движение вперед
 	{
-		w2camera.MoveForward(CAMERA_STEP*10);
+		w2camera.MoveForward(CAMERA_STEP);
 	}
 
 	if (key == 's' || key == 251) // Движение назад
 	{
-		w2camera.MoveBack(CAMERA_STEP*10);
+		w2camera.MoveBack(CAMERA_STEP);
 	}
 
 	if (key == 'a' || key == 244) // Поворот камеры направо
 	{
-		w2camera.Rotate(-CAMERA_STEP*10);
+		w2camera.Rotate(-CAMERA_STEP);
 	}
 
 	if (key == 'd' || key == 226) // Поворот камеры налево
 	{
-		w2camera.Rotate(CAMERA_STEP*10);
+		w2camera.Rotate(CAMERA_STEP);
 	}
 
 	glutPostRedisplay();
 }
-
-
 
 void mouse2(int button, int state, int x, int y)
 {
 	//y = SCREEN_HEIGHT - y;
 	depth2 = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
 	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth2);
-	int k = 0;
-	for(int i=0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
-	{
-		if(depth2[i] < 1) k++;
-	}
 	
 	if(state == GLUT_DOWN && button == GLUT_LEFT_BUTTON)  
 	{
-		Vector4d b = Vector4d(m);
-		Matrix m1 = Matrix(v);
-
-		Vector4d a = m1 * b;
+		Vector4d a = Matrix(v1) * Vector4d(m);
 
 		std::cout << "[Окно 2] Мышь X: " << x << ", Y: " << y << ", глубина: " << (float)depth2[SCREEN_WIDTH*y+x] << std::endl;
-
-		if((float)depth2[SCREEN_WIDTH*y+x]<1)
-		std::cout << "         Глубина (формула): " << ((float)( ((100.0+1)/(100.0-1)) + ((-2*100*1.0)/((float)m[2]*(100.0-1)))  )) << std::endl;
-		else
-		std::cout << "         Глубина (формула): " << ((100+1)/(100-1)) + ((-2*100*1)/(-100.0*(100-1)))<< std::endl;
-
-		std::cout << "         Реальный X: " << m[0] << ", Y: " << m[1] << ", Z: " << m[2] << std::endl;
-		std::cout << "         Вектор   X: " << a.e[0] << ", Y: " << a.e[1]  << ", depth: " << a.e[2] << std::endl << std::endl;
+		std::cout << "     Вектор   X: " << a.e[0] << ", Y: " << a.e[1]  << ", depth: " << a.e[2]/10 << std::endl << std::endl;
 	}
 	delete[]depth2;
 }
@@ -309,12 +300,15 @@ void display2(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-	gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
+	//gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
+	glFrustum(-0.5, 0.5, -0.5 * 3/4, 0.5 * 3/4, 1,10);
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	//glRotated(w2camera.GetAngleXOZ(),0,1,0);
-	//glTranslated(-w2camera.GetX(),-w2camera.GetY(), -w2camera.GetZ());
-
+	/*glRotated(w2camera.GetAngleXOZ(),0,1,0);
+	glRotated(180,0,1,0);
+	glTranslated(-w2camera.GetX(),-w2camera.GetY(), -w2camera.GetZ());
+*/
+	
 	glPushMatrix();
 	glColor3d(1,1,1);
 	glPointSize(5.0);
@@ -324,17 +318,17 @@ void display2(void)
 	glPopMatrix();
 
 
-	glBegin(GL_LINES);
-	glColor3d(1,0,0);
-	glVertex3i(0,0,0);
-	glVertex3i(500,0,0);
-	glColor3d(0,1,0);
-	glVertex3i(0,0,0);
-	glVertex3i(0,500,0);
-	glColor3d(0,0,1);
-	glVertex3i(0,0,0);
-	glVertex3i(0,0,500);
-	glEnd();
+	//glBegin(GL_LINES);
+	//glColor3d(1,0,0);
+	//glVertex3i(0,0,0);
+	//glVertex3i(500,0,0);
+	//glColor3d(0,1,0);
+	//glVertex3i(0,0,0);
+	//glVertex3i(0,500,0);
+	//glColor3d(0,0,1);
+	//glVertex3i(0,0,0);
+	//glVertex3i(0,0,500);
+	//glEnd();
 
 	
 
@@ -648,9 +642,7 @@ HWND GetConsoleHwnd()
        return(hwndFound);
    }
 
-float GetZ(float z)
+float LinearDepth(float depth, float Near, float Far)
 {
-	zFar = 100;
-	zNear = 1;
-	
+	return (2.0 * Near) / (Far + Near - depth * (Far - Near));
 }
