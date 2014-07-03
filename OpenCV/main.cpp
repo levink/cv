@@ -16,8 +16,8 @@ float GetZ(float z);
 
 HWND GetConsoleHwnd();
 
-int SCREEN_WIDTH = 800,  /*Разрешение окона OpenGL&CV по горизонтали*/ 
-	SCREEN_HEIGHT = 600; /*Разрешение окона OpenGL&CV по вертикали*/
+int SCREEN_WIDTH = 320,  /*Разрешение окона OpenGL&CV по горизонтали*/ 
+	SCREEN_HEIGHT = 240; /*Разрешение окона OpenGL&CV по вертикали*/
 float CAMERA_STEP = 0.4;
 
 using namespace std; //Определение пространства имён
@@ -29,7 +29,7 @@ float *depth, *depth2, *mainmas, angle = 0/*Угол поворота камеры XOZ*/;
 int last = 0, fpstmp = 0/*Техническая переменная для определения FPS*/, fps = 0/*Количество кадров в секунду*/, w1 = 0, w2 = 0;
 Camera w1camera = Camera(30,10,30,-45), w2camera = Camera(0,0,0,180); // Главный класс, отвечающий за управление камерой
 char *output, *color;
-long int t1 = 0;
+long int t1 = 0; 
 
 float arr[4] = {50.0,10.0,50.0,1.0}, arr2[3] = {50.0,-1.0,50.0}, colorBlack[3] = {0.5,0.3,0.2},
 	  colorX[3] = {1,0,1}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0}, colorA[3] = {1,1,0},
@@ -228,8 +228,7 @@ void keybordUp(unsigned char key, int x, int y)
 
 }
 
-
-double m[4] = {0,0,-2,1};
+double m[4] = {0,0,-3,1};
 
 void keybord2(unsigned char key, int x, int y)
 {
@@ -245,12 +244,16 @@ void keybord2(unsigned char key, int x, int y)
 	
 	if (key == 'w' || key == 246) // Движение вперед
 	{
-		w2camera.MoveForward(CAMERA_STEP);
+		m[2] = m[2] + 1;
+		cout << m[2] << endl;
+		//w2camera.MoveForward(CAMERA_STEP);
 	}
 
 	if (key == 's' || key == 251) // Движение назад
 	{
-		w2camera.MoveBack(CAMERA_STEP);
+		m[2] = m[2] - 1;
+		cout << m[2] << endl;
+		//w2camera.MoveBack(CAMERA_STEP);
 	}
 
 	if (key == 'a' || key == 244) // Поворот камеры направо
@@ -293,124 +296,151 @@ void idle2(void)
 	glutPostRedisplay();
 }
 
-void display2(void)
+
+const double nearPlane = 3.0;
+const double farPlane = 13;
+
+void RestoreDepthFromBuffer(float* buf, int length)
 {
+	//look at: http://steps3d.narod.ru/tutorials/depth-to-eyez-tutorial.html
+	for(int i=0; i < length; i++)
+	{
+		buf[i] = (farPlane * nearPlane) / (buf[i] * (farPlane - nearPlane) - farPlane);
+	}	
+}
+
+void reshape2(int w, int h)
+{
+	SCREEN_WIDTH = w;
+	SCREEN_HEIGHT = h;
+	glViewport(0, 0, w, h);
+
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-
+	
+	double sw = 1.0;
+	double aspect = (double)h/w;
+	double sh = sw * aspect;
+	
 	//gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
-	glFrustum(-0.5, 0.5, -0.5 * 3/4, 0.5 * 3/4, 1,10);
-	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	glFrustum(-sw/2, sw/2, -sh/2, sh/2, nearPlane, farPlane);
 
-	/*glRotated(w2camera.GetAngleXOZ(),0,1,0);
-	glRotated(180,0,1,0);
-	glTranslated(-w2camera.GetX(),-w2camera.GetY(), -w2camera.GetZ());
-*/
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 	
-	glPushMatrix();
+}
+
+void display2(void)
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glColor3d(1,1,1);
-	glPointSize(5.0);
-	glBegin(GL_POINTS);
-	glVertex3d(m[0],m[1],m[2]);
+
+	glEnable(GL_DEPTH_TEST);
+	glPushMatrix();
+
+	//glTranslated(0, 0, -3);
+	glBegin(GL_QUADS);
+	glVertex3d(-0.5, -0.5, m[2]);
+	glVertex3d(-0.5, 0.5, m[2]);
+	glVertex3d(0.5, 0.5, m[2]);
+	glVertex3d(0.5, -0.5, m[2]);
 	glEnd();
+
 	glPopMatrix();
+	glDisable(GL_DEPTH_TEST);
 
-
-	//glBegin(GL_LINES);
-	//glColor3d(1,0,0);
-	//glVertex3i(0,0,0);
-	//glVertex3i(500,0,0);
-	//glColor3d(0,1,0);
-	//glVertex3i(0,0,0);
-	//glVertex3i(0,500,0);
-	//glColor3d(0,0,1);
-	//glVertex3i(0,0,0);
-	//glVertex3i(0,0,500);
-	//glEnd();
-
+	glReadPixels(160, 120, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
+	RestoreDepthFromBuffer(depth,1);
 	
-
-
+	cout << "realVal=" << m[2]  << " "
+		 << "restoredVal=" << depth[0] << " "
+		 << endl;
+	m[2] = m[2] - 1;
+	system("Pause");
 	glFlush();
 	glutSwapBuffers();
 }
+
 
 void display(void)
 {
 
 	/* Определение количества кадров в секунду (FPS)*/
-	long int t2 = GetTickCount(); 
-
-	if(t2-t1>10)
-	{
-		if(MoveForward)
-		{
-			w1camera.MoveForward(CAMERA_STEP);
-		}
-		if(MoveBack)
-		{
-			w1camera.MoveBack(CAMERA_STEP);
-		}
-		if(RotateLeft)
-		{
-			w1camera.Rotate(-CAMERA_STEP);
-		}
-		if(RotateRight)
-		{
-			w1camera.Rotate(CAMERA_STEP);
-		}
-		if(MoveUp)
-		{
-			w1camera.MoveUp(CAMERA_STEP);
-		}
-		if(MoveDown)
-		{
-			w1camera.MoveDown(CAMERA_STEP);
-		}
-	}
-
-
-	if(t2-t1>1000) 
-	{
-		fps = fpstmp;
-		fpstmp = 0;
-		t1=t2; 
-	} 
-	else fpstmp++;
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-
-	glEnable(GL_DEPTH_TEST);
-	GLfloat ambient[] = {0.2, 0.2, 0.2, 1.0}; 
-	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
-	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
-	glEnable(GL_LIGHTING);
-	
-	gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
-	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	glRotated(180,0,1,0);
-	glRotated(w1camera.GetAngleXOZ(),0,1,0);
-	glTranslated(-w1camera.GetX(),-w1camera.GetY(), -w1camera.GetZ());
-
-	DrawTeapots();
-	DrawWalls();
-
-//  img->origin = IPL_ORIGIN_BL;
-//  gray->origin = IPL_ORIGIN_BL;
-//	dst->origin = IPL_ORIGIN_BL;
-
-//  glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
-//	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
-
-	
-
-	glFlush();
-	glutSwapBuffers();
+//	long int t2 = GetTickCount(); 
+//
+//	if(t2-t1>10)
+//	{
+//		if(MoveForward)
+//		{
+//			w1camera.MoveForward(CAMERA_STEP);
+//		}
+//		if(MoveBack)
+//		{
+//			w1camera.MoveBack(CAMERA_STEP);
+//		}
+//		if(RotateLeft)
+//		{
+//			w1camera.Rotate(-CAMERA_STEP);
+//		}
+//		if(RotateRight)
+//		{
+//			w1camera.Rotate(CAMERA_STEP);
+//		}
+//		if(MoveUp)
+//		{
+//			w1camera.MoveUp(CAMERA_STEP);
+//		}
+//		if(MoveDown)
+//		{
+//			w1camera.MoveDown(CAMERA_STEP);
+//		}
+//	}
+//
+//
+//	if(t2-t1>1000) 
+//	{
+//		fps = fpstmp;
+//		fpstmp = 0;
+//		t1=t2; 
+//	} 
+//	else fpstmp++;
+//
+//
+//	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+//
+//	glMatrixMode(GL_PROJECTION);
+//	glLoadIdentity();
+//	gluPerspective(60,((double)SCREEN_WIDTH)/SCREEN_HEIGHT,1,100);
+//
+//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+//
+//	glEnable(GL_DEPTH_TEST);
+//	GLfloat ambient[] = {0.2, 0.2, 0.2, 1.0}; 
+//	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
+//	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+//	glEnable(GL_LIGHTING);
+//	
+//	
+//	
+//	glRotated(180,0,1,0);
+//	glRotated(w1camera.GetAngleXOZ(),0,1,0);
+//	glTranslated(-w1camera.GetX(),-w1camera.GetY(), -w1camera.GetZ());
+//
+//	DrawTeapots();
+//	DrawWalls();
+//
+////  img->origin = IPL_ORIGIN_BL;
+////  gray->origin = IPL_ORIGIN_BL;
+////	dst->origin = IPL_ORIGIN_BL;
+//
+////  glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
+////	glReadPixels(0,0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, img->imageData); 
+//
+//	
+//
+//	glFlush();
+//	glutSwapBuffers();
 }
 
 void reshape(int weight, int height)
@@ -432,22 +462,29 @@ int main(int argc, char **argv)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-	w1 = glutCreateWindow("OpenGL - Имитация реального мира");
+	
+	/*w1 = glutCreateWindow("OpenGL - Имитация реального мира");
 	glutDisplayFunc(display);
 	glutIdleFunc(idle);
 	glutKeyboardFunc(keybord);
 	glutReshapeFunc(reshape);
 	glutKeyboardUpFunc(keybordUp);
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-	glutInitWindowPosition(850,0);
+	glutInitWindowPosition(850,0);*/
+	
+	 
+	glutInitWindowPosition(100, 750);
 	w2 = glutCreateWindow("OpenGL - Восстановление трёхмерной сцены");
+	
 	glutSetWindow(w2);
+	glutReshapeFunc(reshape2);
 	glutDisplayFunc(display2);
 	glutKeyboardFunc(keybord2);
 	glutMouseFunc(mouse2);
 	glutIdleFunc(idle2);
+	
 	depth = new float[SCREEN_WIDTH*SCREEN_HEIGHT];
 	mainmas = new float[SCREEN_WIDTH*SCREEN_HEIGHT*3];
+	
 	glutMainLoop();
 	delete[]depth;
 	delete[]depth2;
