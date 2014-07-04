@@ -23,16 +23,8 @@ const double Z_FAR = 13;
 	int W_HEIGHT = 240;
 #endif
 
-
-double CAMERA_STEP = 0.4;
-Camera w1camera = Camera(30,10,30,-45); 
-Camera w2camera = Camera(0,0,0,180); 
-bool MoveForward = false, 
-	 MoveBack = false, 	
-	 MoveUp = false, 
-	 MoveDown = false,
-	 RotateLeft = false, 
-	 RotateRight = false;
+Camera cam1 = Camera(30, 10, 30, -45, 0.4);
+Camera cam2 = Camera(0, 0, 0, 180, 1);
 
 long prevTime = GetTickCount();
 int fps = 0;
@@ -90,8 +82,8 @@ namespace SourceScene {
 	
 		glPushMatrix();
 		glRotated(180, 0, 1, 0);
-		glRotated(w1camera.GetAngleXOZ(), 0, 1, 0);
-		glTranslated(-w1camera.GetX(), -w1camera.GetY(), -w1camera.GetZ());
+		glRotated(cam1.GetAngleXOZ(), 0, 1, 0);
+		glTranslated(-cam1.X(), -cam1.Y(), -cam1.Z());
 	
 		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 	
@@ -223,6 +215,12 @@ namespace SourceScene {
 		//}*/
 	}
 
+	void DrawSolidCube(double x, double y, double z){
+		glPushMatrix();
+		glTranslated(x, y, z);
+		glutSolidCube(10);
+		glPopMatrix();
+	}
 	void DrawTeapots()
 	{
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorTeapot);
@@ -273,40 +271,12 @@ namespace SourceScene {
 		glNormal3d(1,1,0);
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorA);
 
-		glPushMatrix();
-		glTranslated(95, 2, 5);
-		glutSolidCube(10);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95, 2, 20);
-		glutSolidCube(10);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95, 2, 35);
-		glutSolidCube(10);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95, 2, 50);
-		glutSolidCube(10);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95, 2, 65);
-		glutSolidCube(10);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95, 2, 80);
-		glutSolidCube(10);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95, 2, 95);
-		glutSolidCube(10);
-		glPopMatrix();
+		DrawSolidCube(95,2,5);
+		DrawSolidCube(95,2,20);
+		DrawSolidCube(95,2,35);
+		DrawSolidCube(95,2,65);
+		DrawSolidCube(95,2,80);
+		DrawSolidCube(95,2,95);
 	}
 	void DrawWalls()
 	{
