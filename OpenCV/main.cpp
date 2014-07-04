@@ -23,7 +23,7 @@ const double Z_FAR = 13;
 	int W_HEIGHT = 240;
 #endif
 
-Camera cam1 = Camera(30, 10, 30, -45, 0.4);
+Camera cam1 = Camera(30, 10, 30, -75, 0.4);
 Camera cam2 = Camera(0, 0, 0, 180, 1);
 
 long prevTime = GetTickCount();
@@ -214,66 +214,47 @@ namespace SourceScene {
 		//	MoveDown = false;
 		//}*/
 	}
-
+	
+	void RenderFigure(int num){
+		if (num == 1) glutSolidCone(4,4,10,10);
+		else if (num == 2) glutSolidTorus(1,2,50,50);
+		else if (num == 3) glutWireSphere(3,100,100);
+		else if (num == 4) glutSolidTeapot(3);
+		else if (num == 5) glutSolidDodecahedron();
+		else if (num == 6) glutWireCube(3);
+		else if (num == 7) glutWireTeapot(3);
+	};
 	void DrawSolidCube(double x, double y, double z){
 		glPushMatrix();
 		glTranslated(x, y, z);
 		glutSolidCube(10);
 		glPopMatrix();
 	}
+	void DrawFigure(double x, double y, double z, double a, int num)
+	{
+		glPushMatrix();
+		glTranslated(x,y,z);
+		glRotated(a, 1, 0, 0);
+		RenderFigure(num);
+		glPopMatrix();
+	}
 	void DrawTeapots()
 	{
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorTeapot);
-		glNormal3d(0,1,0);
+		DrawFigure(95, 7, 5, -90 + teapotAngle, 1);  
+		DrawFigure(95, 10, 20, 90 + teapotAngle, 2); 
+		DrawFigure(95, 10, 35, teapotAngle, 3); 
+		DrawFigure(95, 10, 50, -teapotAngle, 7); 
+		DrawFigure(95, 9, 65, teapotAngle, 4); 
+		DrawFigure(95, 9, 80, teapotAngle, 5); 
+		DrawFigure(95, 9, 95, teapotAngle, 6); 
+		
 
-		glPushMatrix();
-		glTranslated(95,7,5);
-		glRotated(-90+teapotAngle,1,0,0);
-		glutSolidCone(4,4,10,10);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95,10,20);
-		glRotated(90 + teapotAngle,0,1,0);
-		glutSolidTorus(1,2,50,50);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95, 10, 35);
-		glRotated(teapotAngle, 0, 1, 0);
-		glutWireSphere(3,100,100);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95,9,65);
-		glRotated(teapotAngle, 0, 1, 0);
-		glutSolidTeapot(3);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95,9,80);
-		glRotated(teapotAngle, 0, 1, 0);
-		glutSolidDodecahedron();
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95,9,95);
-		glRotated(teapotAngle, 0, 1, 0);
-		glutWireCube(3);
-		glPopMatrix();
-
-		glPushMatrix();
-		glTranslated(95, 9, 50);
-		glRotated(-teapotAngle, 0, 1, 0);
-		glutWireTeapot(3);
-		glPopMatrix();
-
-		glNormal3d(1,1,0);
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorA);
-
 		DrawSolidCube(95,2,5);
 		DrawSolidCube(95,2,20);
 		DrawSolidCube(95,2,35);
+		DrawSolidCube(95,2,50);
 		DrawSolidCube(95,2,65);
 		DrawSolidCube(95,2,80);
 		DrawSolidCube(95,2,95);
