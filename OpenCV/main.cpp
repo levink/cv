@@ -364,7 +364,7 @@ namespace RestoredScene
 		glLoadIdentity();
 	
 		double sw = 1.0;
-		double aspect = ((double)h)/h;
+		double aspect = ((double)h)/w;
 		double sh = sw * aspect;
 
 		glFrustum(-sw/2, sw/2, -sh/2, sh/2, Z_NEAR, Z_FAR);
@@ -439,17 +439,22 @@ namespace RestoredScene
 		glutPostRedisplay();
 	}
 	void RenderFPS(int value){
+		glPushMatrix();
+		glLoadIdentity();
+
 		char buf[20];
-		double d = -0.5 + 0.04;
+		double d1 = -0.5 + 0.04; //values d1 and d2 depends on RestoredScene::reshape()
+		double d2 = d1 * 0.75;
 
 		sprintf(buf,"FPS: %d", value);
 		
 		glColor3d(0,1,0);
-		glRasterPos3f (d, d, -3);
+		glRasterPos3f (d1, d2, -3);
 		for(int i=0; buf[i]; i++) 
 		{
 			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 		}
+		glPopMatrix();
 	};
 };	
 
