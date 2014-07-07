@@ -10,7 +10,7 @@
 #define CTAN_30 1.7320508075688772935274463415059
 
 const double Z_NEAR = 3.0;
-const double Z_FAR = 13;
+const double Z_FAR = 50;
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
@@ -23,8 +23,8 @@ const double Z_FAR = 13;
 	int W_HEIGHT = 240;
 #endif
 
-Camera cam1 = Camera(30, 10, 30, -75, 0.4);
-Camera cam2 = Camera(0, 0, 0, 180, 1);
+Camera cam1 = Camera(30, 10, 30, 60, 2);
+Camera cam2 = Camera(0, 0, 0, 0, 1);
 int activeScene = 0;
 
 long prevTime = GetTickCount();
@@ -82,7 +82,6 @@ namespace SourceScene {
 		glViewport(0, 0, W_WIDTH, W_HEIGHT);
 	
 		glPushMatrix();
-		glRotated(180, 0, 1, 0);
 		glRotated(cam1.GetAngleXOZ(), 0, 1, 0);
 		glTranslated(-cam1.X(), -cam1.Y(), -cam1.Z());
 	
@@ -231,6 +230,10 @@ namespace RestoredScene
 	{
 		glViewport(W_WIDTH, 0, W_WIDTH, W_HEIGHT);
 		
+		glPushMatrix();
+		glRotated(cam2.GetAngleXOZ(), 0, 1, 0);
+		glTranslated(-cam2.X(), -cam2.Y(), -cam2.Z());
+
 		glEnable(GL_DEPTH_TEST);
 		glPushMatrix();
 
@@ -255,6 +258,7 @@ namespace RestoredScene
 			 << endl;
 		zTest[2] = zTest[2] - 1;
 		*/
+		glPopMatrix();
 	}
 	
 	void RenderFPS(int value){
@@ -366,119 +370,32 @@ void keybord(unsigned char key, int x, int y){
 		
 	Camera *c = activeScene == 0 ? &cam1 : &cam2;
 
-	if (key == 'w' || key == 246) // Движение вперед
+	if (key == 'w' || key == 246)
 	{
-		//zTest[2] += 1;
 		c->MoveForward();
 	}
-
-	if (key == 's' || key == 251) // Движение назад
+	if (key == 's' || key == 251)
 	{
-		//zTest[2] -= 1;
 		c->MoveBack();
-		//w2camera.MoveBack(CAMERA_STEP);
 	}	
-	//if (key == 'j' || key == 238)
-		//{
-		//	if(!FullScreen)
-		//	{
-		//		glutFullScreen();
-		//		FullScreen = true;
-		//	}
-		//	else
-		//	{
-		//		glutReshapeWindow(800,600);
-		//		FullScreen = false;
-		//	}
-
-		//}
-
-		//if (key == 'k' || key == 235)
-		//{
-		//	cout << "[Окно 1] Состояние" << endl;
-		//	cout << "Текущие координаты: X: " << (int)w1camera.GetX() << ", Y: " << (int)w1camera.GetY() << ", Z: " << (int)w1camera.GetZ() << ", угол: " << (int)w1camera.GetAngleXOZ() << endl;
-		//	cout << "Разрешение окна: " << W_WIDTH << "x" << W_HEIGHT << endl;
-		//	cout << "Шаг камеры: " << CAMERA_STEP << endl;
-		//	cout << "FPS: " << fps << endl;
-		//	cout << endl;
-		//}
-	
-		//if (key == 'w' || key == 246) // Движение вперед
-		//{
-		//	w1camera.MoveForward(CAMERA_STEP);
-		//	MoveForward = true;
-		//}
-
-		//if (key == 's' || key == 251) // Движение назад
-		//{
-		//	w1camera.MoveBack(CAMERA_STEP);
-		//	MoveBack = true;
-		//}
-
-		//if (key == 'a' || key == 244) // Поворот камеры направо
-		//{
-		//	w1camera.Rotate(-CAMERA_STEP);
-		//	RotateLeft = true;
-		//}
-
-		//if (key == 'd' || key == 226) // Поворот камеры налево
-		//{
-		//	w1camera.Rotate(CAMERA_STEP);
-		//	RotateRight = true;
-		//}
-
-		//if (key == 'r' || key == 234) // Поворот камеры налево
-		//{
-		//	w1camera.MoveUp(CAMERA_STEP);
-		//	MoveUp = true;
-		//}
-		//if (key == 'f' || key == 224) // Поворот камеры налево
-		//{
-		//	w1camera.MoveDown(CAMERA_STEP);
-		//	MoveDown = true;
-		//}
-
-		//if (key == '=' || key == 61) 
-		//{
-		//	CAMERA_STEP+=0.02;
-		//}
-		//if (key == '-' || key == 45) 
-		//{
-		//	CAMERA_STEP-=0.02;
-		//}
-
-	//	cout << (int)key << endl;
-		//glutPostRedisplay();
+	if (key == 'a' || key == 244)
+	{
+		c->MoveLeft();
+	}
+	if (key == 'd' || key == 226)
+	{
+		c->MoveRight();
+	}
+	if (key == 'q')
+	{
+		c->Rotate(-10);
+	}
+	if (key == 'e')
+	{
+		c->Rotate(10);
+	}
 }
 void keybordUp(unsigned char key, int x, int y){
-	///*if (key == 'w' || key == 246) 
-		//{
-		//	MoveForward = false;
-		//}
-
-		//if (key == 's' || key == 251) 
-		//{
-		//	MoveBack = false;
-		//}
-
-		//if (key == 'a' || key == 244) 
-		//{
-		//	RotateLeft = false;
-		//}
-
-		//if (key == 'd' || key == 226)
-		//{
-		//	RotateRight = false;
-		//}
-
-		//if (key == 'r' || key == 234)
-		//{
-		//	MoveUp = false;
-		//}
-		//if (key == 'f' || key == 224) 
-		//{
-		//	MoveDown = false;
-		//}*/
 }
 void click(int button, int state, int x, int y){
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){

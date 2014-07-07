@@ -24,9 +24,9 @@ private:
 	double a;
 	void Move(double dx, double dy, double dz)
 	{
-		camPos[0] = dx;
-		camPos[1] = dy;
-		camPos[2] = dz;
+		camPos[0] += dx;
+		camPos[1] += dy;
+		camPos[2] += dz;
 	}
 public:
 	double v;
@@ -53,12 +53,19 @@ public:
 	}
 	void MoveForward()
 	{
-		Move(1,0,0); //for debug
-		//Move(-v * sin(a * D2R), 0, v * cos(a * D2R));
+		Move(v * sin(a * D2R), 0, -v * cos(a * D2R));
 	}
 	void MoveBack()
 	{
-		Move(v * sin(a * D2R), 0, -v * cos(a * D2R));
+		Move(-v * sin(a * D2R), 0, v * cos(a * D2R));
+	}
+	void MoveRight()
+	{
+		Move(v * cos(a * D2R), 0, v * sin(a * D2R));
+	}
+	void MoveLeft()
+	{
+		Move(-v * cos(a * D2R), 0, -v * sin(a * D2R));
 	}
 	void MoveUp(float step)
 	{
