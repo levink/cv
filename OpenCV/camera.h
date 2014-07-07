@@ -21,7 +21,7 @@ class Camera
 {
 private:
 	double camPos[3];
-	double a;
+	double aZ, a;
 	void Move(double dx, double dy, double dz)
 	{
 		camPos[0] += dx;
@@ -41,13 +41,20 @@ public:
 	double Z(){
 		return camPos[2];
 	}
-	double GetAngleXOZ()
+	double GetAngleZ()
+	{
+		return aZ;
+	}
+	double GetAngleY()
 	{
 		return a;
 	}
-	void Rotate(float angleZ)
+	void Rotate(float horizontal, float vertical)
 	{
-		a += angleZ;
+		aZ += vertical;
+		a += horizontal;
+		if(aZ > 360) aZ = 0;
+		if(aZ < 0) aZ = 360;
 		if(a > 360) a = 0;
 		if(a < 0) a = 360;
 	}
@@ -83,6 +90,7 @@ Camera::Camera(float x , float y, float z, float angle, double velocity)
 	camPos[1] = y;
 	camPos[2] = z;
 	a = angle;
+	aZ = 0;
 	v = velocity;
 	for(int i = Forward; i < RotateLeft; i++)
 	{

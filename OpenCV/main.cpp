@@ -14,7 +14,7 @@ const double Z_FAR = 13;
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
-#define SCREEN_MODE 1
+#define SCREEN_MODE 2
 #if SCREEN_MODE == 1
 	int W_WIDTH = 640;
 	int W_HEIGHT = 480;
@@ -37,6 +37,8 @@ float colorBlack[3] = {0.5, 0.3, 0.2};
 float colorX[3] = {1,0,1}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0}, 
 	colorA[3] = {1,1,0}, colorTeapot[3] = {0,1,0}, amb[4] = {0,1,0,0};
 
+int mx = 0;
+int my = 0;
 
 IplImage *img = NULL;
 IplImage *gray = NULL;
@@ -88,7 +90,8 @@ namespace SourceScene {
 		glViewport(0, 0, W_WIDTH, W_HEIGHT);
 	
 		glPushMatrix();
-		glRotated(cam1.GetAngleXOZ(), 0, 1, 0);
+		glRotated(cam1.GetAngleZ(), 1, 0, 0);
+		glRotated(cam1.GetAngleY(), 0, 1, 0);
 		glTranslated(-cam1.X(), -cam1.Y(), -cam1.Z());
 	
 		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
@@ -253,10 +256,10 @@ namespace RestoredScene
 		glDisable(GL_DEPTH_TEST);
 		
 		glReadPixels(480, 120, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
-		cout << "realVal=" << zTest[2]  << " realDepth=" << depth[0]; 
+	//	cout << "realVal=" << zTest[2]  << " realDepth=" << depth[0]; 
 		RestoreDepthFromBuffer(depth,1);
 	
-		cout << " restoredVal=" << depth[0] << endl;
+	//	cout << " restoredVal=" << depth[0] << endl;
 		//zTest[2] = zTest[2] - 1;
 		
 		glPopMatrix();
@@ -396,11 +399,11 @@ void keybord(unsigned char key, int x, int y){
 	}
 	if (key == 'q')
 	{
-		c->Rotate(-10);
+		c->Rotate(-10, 0);
 	}
 	if (key == 'e')
 	{
-		c->Rotate(10);
+		c->Rotate(10, 0);
 	}
 }
 void keybordUp(unsigned char key, int x, int y){
@@ -409,19 +412,20 @@ void click(int button, int state, int x, int y){
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
 		activeScene = x < W_WIDTH ? 0 : 1;
 	}
+	mx = x;
+	my = y;
 }
 
-int px = 0, py = 0;
+
 void motion(int x, int y)
 {
-	if(activeScene)
-	{
-	
-		
+	int dx = mx - x;
+	int dy = my - y;
+	cout << dx << " " << dy << endl;
+	cam1.Rotate(-dx, -dy);
 
-	}
-	px = x;
-	py = y;
+	mx = x;
+	my = y;
 }
 
 int main(int argc, char **argv)
