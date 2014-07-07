@@ -259,49 +259,57 @@ namespace SourceScene {
 		DrawSolidCube(95,2,80);
 		DrawSolidCube(95,2,95);
 	}
+	void DrawQuad(GLfloat vert[8][3], int* ind, GLfloat *n){
+		glNormal3fv(n);
+		glVertex3fv(vert[ind[0]]);
+		glVertex3fv(vert[ind[1]]);
+		glVertex3fv(vert[ind[2]]);
+		glVertex3fv(vert[ind[3]]);
+	}
 	void DrawWalls()
 	{
+		GLfloat vertex[8][3]={
+			{0,-1, 0},		//0
+			{0,-1, 100},	//1
+			{0, 30, 0},		//2
+			{0, 30, 100},	//3
+			{100,-1, 0},	//4
+			{100,-1, 100},	//5
+			{100, 30, 0},	//6
+			{100, 30, 100},	//7
+		};
+		GLfloat norm[][3] = {
+			{0, 1, 0},
+			{0, 0, -1},
+			{0, 0, 1},
+			{0, 0, -1},
+			{1, 0, 0},
+			{-1, 0, 0}
+		};
+		int order[][4] = {
+			{5, 4, 0, 1},
+			{2, 3, 7, 6},
+			{0, 4, 6, 2},
+			{1, 5, 7, 3},
+			{1, 0, 2, 3},
+			{5, 4, 6, 7}
+		};
+		
+
 		glBegin(GL_QUADS); 
 
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorY);
-		glNormal3d(0,1,0);	//floor	
-		glVertex3d(100,-1,100);
-		glVertex3d(100,-1,0);
-		glVertex3d(0,-1,0);
-		glVertex3d(0,-1,100);
+		DrawQuad(vertex, order[0], norm[0]); //floor	
 
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorZ);
-		glNormal3d(0,0,-1); //top	
-		glVertex3d(0,30,0);
-		glVertex3d(0,30,100);
-		glVertex3d(100,30,100);
-		glVertex3d(100,30,0);
-	
+		DrawQuad(vertex, order[1], norm[1]); //top
+		
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorX);	
-		glNormal3d(0,0,1); //near
-		glVertex3d(0,-1,0);
-		glVertex3d(100,-1,0);
-		glVertex3d(100,30,0);
-		glVertex3d(0,30,0);
-	
-		glNormal3d(0,0,-1); //far	
-		glVertex3d(0,-1,100);
-		glVertex3d(100,-1,100);
-		glVertex3d(100,30,100);
-		glVertex3d(0,30,100);
-	
-		glNormal3d(0,0,-1); //left	
-		glVertex3d(0,-1,100);
-		glVertex3d(0,-1,0);
-		glVertex3d(0,30,0);
-		glVertex3d(0,30,100);
-	
-		glNormal3d(0,0,-1); //right	
-		glVertex3d(100,-1,100);
-		glVertex3d(100,-1,0);
-		glVertex3d(100,30,0);
-		glVertex3d(100,30,100);
-
+		DrawQuad(vertex, order[2], norm[2]); //near
+		DrawQuad(vertex, order[3], norm[3]); //far
+		DrawQuad(vertex, order[4], norm[4]); //left
+		DrawQuad(vertex, order[5], norm[5]); //right
+		
 		glEnd();
 	}
 };
