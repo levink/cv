@@ -14,7 +14,7 @@ const double Z_FAR = 50;
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
-#define SCREEN_MODE 2
+#define SCREEN_MODE 1
 #if SCREEN_MODE == 1
 	int W_WIDTH = 640;
 	int W_HEIGHT = 480;
@@ -404,6 +404,19 @@ void click(int button, int state, int x, int y){
 	}
 }
 
+int px = 0, py = 0;
+void motion(int x, int y)
+{
+	if(activeScene)
+	{
+	
+		
+
+	}
+	px = x;
+	py = y;
+}
+
 int main(int argc, char **argv)
 {
 	setlocale(LC_ALL, "RUS");
@@ -433,6 +446,7 @@ int main(int argc, char **argv)
 	glutKeyboardFunc(keybord);
 	glutKeyboardUpFunc(keybordUp);
 	glutMouseFunc(click);
+	glutMotionFunc(motion);
 	
 	glutMainLoop();
 	
