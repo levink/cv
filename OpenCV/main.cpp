@@ -10,7 +10,7 @@
 #define CTAN_30 1.7320508075688772935274463415059
 
 const double Z_NEAR = 3.0;
-const double Z_FAR = 50;
+const double Z_FAR = 13;
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
@@ -72,6 +72,12 @@ namespace SourceScene {
 	{
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
+		
+		/*double sw = 1.0;
+		double aspect = ((double)h)/w;
+		double sh = sw * aspect;
+
+		glFrustum(-sw/2, sw/2, -sh/2, sh/2, Z_NEAR, Z_FAR);*/
 		gluPerspective(60, ((double)w)/h, 1, 100);
 
 		glMatrixMode(GL_MODELVIEW);
@@ -246,12 +252,11 @@ namespace RestoredScene
 		glPopMatrix();
 		glDisable(GL_DEPTH_TEST);
 		
-		glReadPixels(160, 120, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
+		glReadPixels(480, 120, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
+		cout << "realVal=" << zTest[2]  << " realDepth=" << depth[0]; 
 		RestoreDepthFromBuffer(depth,1);
 	
-		cout << "realVal=" << zTest[2]  << " "
-			 << "restoredVal=" << depth[0] << " "
-			 << endl;
+		cout << " restoredVal=" << depth[0] << endl;
 		//zTest[2] = zTest[2] - 1;
 		
 		glPopMatrix();
@@ -373,10 +378,12 @@ void keybord(unsigned char key, int x, int y){
 
 	if (key == 'w' || key == 246)
 	{
+		zTest[2] += 1;
 		c->MoveForward();
 	}
 	if (key == 's' || key == 251)
 	{
+		zTest[2] -= 1;
 		c->MoveBack();
 	}	
 	if (key == 'a' || key == 244)
