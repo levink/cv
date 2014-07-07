@@ -51,13 +51,14 @@ public:
 		if(a > 360) a = 0;
 		if(a < 0) a = 360;
 	}
-	void MoveForward(float step)
+	void MoveForward()
 	{
-		Move(-step * sin(a * D2R), 0, step * cos(a * D2R));
+		Move(1,0,0); //for debug
+		//Move(-v * sin(a * D2R), 0, v * cos(a * D2R));
 	}
-	void MoveBack(float step)
+	void MoveBack()
 	{
-		Move(step * sin(a * D2R), 0, -step * cos(a * D2R));
+		Move(v * sin(a * D2R), 0, -v * cos(a * D2R));
 	}
 	void MoveUp(float step)
 	{

@@ -25,6 +25,7 @@ const double Z_FAR = 13;
 
 Camera cam1 = Camera(30, 10, 30, -75, 0.4);
 Camera cam2 = Camera(0, 0, 0, 180, 1);
+int activeScene = 0;
 
 long prevTime = GetTickCount();
 int fps = 0;
@@ -103,116 +104,10 @@ namespace SourceScene {
 		glDisable(GL_LIGHT0);
 		glDisable(GL_LIGHTING);
 
-		
 		glPopMatrix();
 		
 		//glReadPixels(0,0, W_WIDTH, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
 		//RestoreDepthFromBuffer(depth,1);
-	}
-	void keybord(unsigned char key, int x, int y)
-	{
-		//if (key == 'j' || key == 238)
-		//{
-		//	if(!FullScreen)
-		//	{
-		//		glutFullScreen();
-		//		FullScreen = true;
-		//	}
-		//	else
-		//	{
-		//		glutReshapeWindow(800,600);
-		//		FullScreen = false;
-		//	}
-
-		//}
-
-		//if (key == 'k' || key == 235)
-		//{
-		//	cout << "[Окно 1] Состояние" << endl;
-		//	cout << "Текущие координаты: X: " << (int)w1camera.GetX() << ", Y: " << (int)w1camera.GetY() << ", Z: " << (int)w1camera.GetZ() << ", угол: " << (int)w1camera.GetAngleXOZ() << endl;
-		//	cout << "Разрешение окна: " << W_WIDTH << "x" << W_HEIGHT << endl;
-		//	cout << "Шаг камеры: " << CAMERA_STEP << endl;
-		//	cout << "FPS: " << fps << endl;
-		//	cout << endl;
-		//}
-	
-		//if (key == 'w' || key == 246) // Движение вперед
-		//{
-		//	w1camera.MoveForward(CAMERA_STEP);
-		//	MoveForward = true;
-		//}
-
-		//if (key == 's' || key == 251) // Движение назад
-		//{
-		//	w1camera.MoveBack(CAMERA_STEP);
-		//	MoveBack = true;
-		//}
-
-		//if (key == 'a' || key == 244) // Поворот камеры направо
-		//{
-		//	w1camera.Rotate(-CAMERA_STEP);
-		//	RotateLeft = true;
-		//}
-
-		//if (key == 'd' || key == 226) // Поворот камеры налево
-		//{
-		//	w1camera.Rotate(CAMERA_STEP);
-		//	RotateRight = true;
-		//}
-
-		//if (key == 'r' || key == 234) // Поворот камеры налево
-		//{
-		//	w1camera.MoveUp(CAMERA_STEP);
-		//	MoveUp = true;
-		//}
-		//if (key == 'f' || key == 224) // Поворот камеры налево
-		//{
-		//	w1camera.MoveDown(CAMERA_STEP);
-		//	MoveDown = true;
-		//}
-
-		//if (key == '=' || key == 61) 
-		//{
-		//	CAMERA_STEP+=0.02;
-		//}
-		//if (key == '-' || key == 45) 
-		//{
-		//	CAMERA_STEP-=0.02;
-		//}
-
-	//	cout << (int)key << endl;
-		//glutPostRedisplay();
-	}
-	void keybordUp(unsigned char key, int x, int y)
-	{
-		///*if (key == 'w' || key == 246) 
-		//{
-		//	MoveForward = false;
-		//}
-
-		//if (key == 's' || key == 251) 
-		//{
-		//	MoveBack = false;
-		//}
-
-		//if (key == 'a' || key == 244) 
-		//{
-		//	RotateLeft = false;
-		//}
-
-		//if (key == 'd' || key == 226)
-		//{
-		//	RotateRight = false;
-		//}
-
-		//if (key == 'r' || key == 234)
-		//{
-		//	MoveUp = false;
-		//}
-		//if (key == 'f' || key == 224) 
-		//{
-		//	MoveDown = false;
-		//}*/
 	}
 	
 	void RenderFigure(int num){
@@ -317,6 +212,7 @@ namespace SourceScene {
 namespace RestoredScene
 {	
 	void RenderFPS(int value);
+	
 	void reshape(int w, int h)
 	{
 		glMatrixMode(GL_PROJECTION);
@@ -360,43 +256,7 @@ namespace RestoredScene
 		zTest[2] = zTest[2] - 1;
 		*/
 	}
-	void keybord(unsigned char key, int x, int y)
-	{
-		/*if (key == '=')
-		{
-			zTest[2] -= 1;
-		}
-		if (key == '-')
-		{
-			zTest[2]+= 1;
-		}*/
 	
-		if (key == 'w' || key == 246) // Движение вперед
-		{
-			zTest[2] += 1;
-			//cout << zTest[2] << endl;
-			//w2camera.MoveForward(CAMERA_STEP);
-		}
-
-		if (key == 's' || key == 251) // Движение назад
-		{
-			zTest[2] -= 1;
-			//cout << zTest[2] << endl;
-			//w2camera.MoveBack(CAMERA_STEP);
-		}
-
-		//if (key == 'a' || key == 244) // Поворот камеры направо
-		//{
-		//	w2camera.Rotate(-CAMERA_STEP);
-		//}
-
-		//if (key == 'd' || key == 226) // Поворот камеры налево
-		//{
-		//	w2camera.Rotate(CAMERA_STEP);
-		//}
-
-		glutPostRedisplay();
-	}
 	void RenderFPS(int value){
 		glPushMatrix();
 		glLoadIdentity();
@@ -418,6 +278,24 @@ namespace RestoredScene
 };	
 
 
+void DrawFrame(){
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(-1,1, -1,1, 0,1);
+		
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+
+		glColor3d(0, 1, 0);
+		glLineWidth(2);
+
+		glBegin(GL_LINE_LOOP);
+		glVertex2d(-1, -1);
+		glVertex2d(-1,  1);
+		glVertex2d( 1,  1);
+		glVertex2d( 1, -1);
+		glEnd();
+}
 void DrawFPS(IplImage * pic, int _fps, int clusters)
 {
 	CvPoint pt = cvPoint( W_WIDTH-100, W_HEIGHT-30 );
@@ -471,9 +349,11 @@ void display(void){
 		
 	SourceScene::reshape(W_WIDTH, W_HEIGHT); 
 	SourceScene::display();
+	if (activeScene == 0) DrawFrame();
 
 	RestoredScene::reshape(W_WIDTH, W_HEIGHT);
 	RestoredScene::display();
+	if (activeScene == 1) DrawFrame();
 
 	glFlush();
 	glutSwapBuffers();
@@ -481,6 +361,129 @@ void display(void){
 void idle(void)
 {
 	glutPostRedisplay();
+}
+void keybord(unsigned char key, int x, int y){
+		
+	Camera *c = activeScene == 0 ? &cam1 : &cam2;
+
+	if (key == 'w' || key == 246) // Движение вперед
+	{
+		//zTest[2] += 1;
+		c->MoveForward();
+	}
+
+	if (key == 's' || key == 251) // Движение назад
+	{
+		//zTest[2] -= 1;
+		c->MoveBack();
+		//w2camera.MoveBack(CAMERA_STEP);
+	}	
+	//if (key == 'j' || key == 238)
+		//{
+		//	if(!FullScreen)
+		//	{
+		//		glutFullScreen();
+		//		FullScreen = true;
+		//	}
+		//	else
+		//	{
+		//		glutReshapeWindow(800,600);
+		//		FullScreen = false;
+		//	}
+
+		//}
+
+		//if (key == 'k' || key == 235)
+		//{
+		//	cout << "[Окно 1] Состояние" << endl;
+		//	cout << "Текущие координаты: X: " << (int)w1camera.GetX() << ", Y: " << (int)w1camera.GetY() << ", Z: " << (int)w1camera.GetZ() << ", угол: " << (int)w1camera.GetAngleXOZ() << endl;
+		//	cout << "Разрешение окна: " << W_WIDTH << "x" << W_HEIGHT << endl;
+		//	cout << "Шаг камеры: " << CAMERA_STEP << endl;
+		//	cout << "FPS: " << fps << endl;
+		//	cout << endl;
+		//}
+	
+		//if (key == 'w' || key == 246) // Движение вперед
+		//{
+		//	w1camera.MoveForward(CAMERA_STEP);
+		//	MoveForward = true;
+		//}
+
+		//if (key == 's' || key == 251) // Движение назад
+		//{
+		//	w1camera.MoveBack(CAMERA_STEP);
+		//	MoveBack = true;
+		//}
+
+		//if (key == 'a' || key == 244) // Поворот камеры направо
+		//{
+		//	w1camera.Rotate(-CAMERA_STEP);
+		//	RotateLeft = true;
+		//}
+
+		//if (key == 'd' || key == 226) // Поворот камеры налево
+		//{
+		//	w1camera.Rotate(CAMERA_STEP);
+		//	RotateRight = true;
+		//}
+
+		//if (key == 'r' || key == 234) // Поворот камеры налево
+		//{
+		//	w1camera.MoveUp(CAMERA_STEP);
+		//	MoveUp = true;
+		//}
+		//if (key == 'f' || key == 224) // Поворот камеры налево
+		//{
+		//	w1camera.MoveDown(CAMERA_STEP);
+		//	MoveDown = true;
+		//}
+
+		//if (key == '=' || key == 61) 
+		//{
+		//	CAMERA_STEP+=0.02;
+		//}
+		//if (key == '-' || key == 45) 
+		//{
+		//	CAMERA_STEP-=0.02;
+		//}
+
+	//	cout << (int)key << endl;
+		//glutPostRedisplay();
+}
+void keybordUp(unsigned char key, int x, int y){
+	///*if (key == 'w' || key == 246) 
+		//{
+		//	MoveForward = false;
+		//}
+
+		//if (key == 's' || key == 251) 
+		//{
+		//	MoveBack = false;
+		//}
+
+		//if (key == 'a' || key == 244) 
+		//{
+		//	RotateLeft = false;
+		//}
+
+		//if (key == 'd' || key == 226)
+		//{
+		//	RotateRight = false;
+		//}
+
+		//if (key == 'r' || key == 234)
+		//{
+		//	MoveUp = false;
+		//}
+		//if (key == 'f' || key == 224) 
+		//{
+		//	MoveDown = false;
+		//}*/
+}
+void click(int button, int state, int x, int y){
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
+		activeScene = x < W_WIDTH ? 0 : 1;
+	}
 }
 
 int main(int argc, char **argv)
@@ -504,12 +507,14 @@ int main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(2 * W_WIDTH, W_HEIGHT);
 
-	glutInitWindowPosition(50, 500);
+	glutInitWindowPosition(50, 700);
 	glutCreateWindow("Восстановление трёхмерной сцены");
 	glutIdleFunc(idle);
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
-	glutKeyboardFunc(RestoredScene::keybord);
+	glutKeyboardFunc(keybord);
+	glutKeyboardUpFunc(keybordUp);
+	glutMouseFunc(click);
 	
 	glutMainLoop();
 	
