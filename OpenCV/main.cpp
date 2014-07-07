@@ -209,9 +209,7 @@ namespace SourceScene {
 };
 
 namespace RestoredScene
-{	
-	void RenderFPS(int value);
-	
+{		
 	void reshape(int w, int h)
 	{
 		glMatrixMode(GL_PROJECTION);
@@ -231,8 +229,8 @@ namespace RestoredScene
 		glViewport(W_WIDTH, 0, W_WIDTH, W_HEIGHT);
 		
 		glPushMatrix();
-		glRotated(cam2.GetAngleXOZ(), 0, 1, 0);
-		glTranslated(-cam2.X(), -cam2.Y(), -cam2.Z());
+		//glRotated(cam2.GetAngleXOZ(), 0, 1, 0);
+		//glTranslated(-cam2.X(), -cam2.Y(), -cam2.Z());
 
 		glEnable(GL_DEPTH_TEST);
 		glPushMatrix();
@@ -247,38 +245,17 @@ namespace RestoredScene
 
 		glPopMatrix();
 		glDisable(GL_DEPTH_TEST);
-		RenderFPS(fps);
 		
 		glReadPixels(160, 120, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
 		RestoreDepthFromBuffer(depth,1);
 	
-		/*
 		cout << "realVal=" << zTest[2]  << " "
 			 << "restoredVal=" << depth[0] << " "
 			 << endl;
-		zTest[2] = zTest[2] - 1;
-		*/
+		//zTest[2] = zTest[2] - 1;
+		
 		glPopMatrix();
 	}
-	
-	void RenderFPS(int value){
-		glPushMatrix();
-		glLoadIdentity();
-
-		char buf[20];
-		double d1 = -0.5 + 0.04; //values d1 and d2 depends on RestoredScene::reshape()
-		double d2 = d1 * 0.75;
-
-		sprintf(buf,"FPS: %d", value);
-		
-		glColor3d(0,1,0);
-		glRasterPos3f (d1, d2, -3);
-		for(int i=0; buf[i]; i++) 
-		{
-			glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
-		}
-		glPopMatrix();
-	};
 };	
 
 
@@ -300,6 +277,28 @@ void DrawFrame(){
 		glVertex2d( 1, -1);
 		glEnd();
 }
+void RenderFPS(int value){
+		
+	glViewport(0, 0, 2 * W_WIDTH, W_HEIGHT);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, 2*W_WIDTH, 0, W_HEIGHT, 0,1);
+		
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	char buf[20];
+	sprintf(buf,"FPS: %d", value);
+		
+	glColor3d(0,1,0);
+	glRasterPos3f (10, 10, 0);
+	for(int i=0; buf[i]; i++) 
+	{
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
+	}
+	
+	};
 void DrawFPS(IplImage * pic, int _fps, int clusters)
 {
 	CvPoint pt = cvPoint( W_WIDTH-100, W_HEIGHT-30 );
@@ -358,6 +357,8 @@ void display(void){
 	RestoredScene::reshape(W_WIDTH, W_HEIGHT);
 	RestoredScene::display();
 	if (activeScene == 1) DrawFrame();
+
+	RenderFPS(fps);
 
 	glFlush();
 	glutSwapBuffers();
