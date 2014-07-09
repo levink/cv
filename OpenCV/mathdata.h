@@ -1,6 +1,8 @@
 #ifndef __MATH_DATA_H
 #define __MATH_DATA_H
 
+#define PI 3.1415926535897932384626433832795
+
 struct Vector4d
 {
 	double e[4];

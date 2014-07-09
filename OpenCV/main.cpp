@@ -9,22 +9,25 @@
 #define TAN_30 0.57735026918962576450914878050196
 #define CTAN_30 1.7320508075688772935274463415059
 
-const double Z_NEAR = 3.0;
-const double Z_FAR = 13;
+const double Z_NEAR = 1.0;
+const double Z_FAR = 100;
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
-#define SCREEN_MODE 2
+#define SCREEN_MODE 1
+
 #if SCREEN_MODE == 1
 	int W_WIDTH = 640;
 	int W_HEIGHT = 480;
+	int CONSOLEY = 519;
 #elif SCREEN_MODE == 2
 	int W_WIDTH = 320;
 	int W_HEIGHT = 240;
+	int CONSOLEY = 279;
 #endif
 
-Camera cam1 = Camera(30, 10, 30, 60, 2);
-Camera cam2 = Camera(0, 0, 0, 0, 1);
+Camera cam1 = Camera(30, 10, 30, 90, 2);
+Camera cam2 = Camera(0, 0, 0, 180, 1);
 int activeScene = 0;
 
 long prevTime = GetTickCount();
@@ -47,15 +50,21 @@ float *depth;
 float *mainmas;
 
 
-double zTest[4] = {0,0,-3,1};
-void RestoreDepthFromBuffer(float* buf, int length)
+double zTest[4] = {0,0,6,1};
+void RestoreFrustumDepthFromBuffer(float* buf, int length)
 {
-	//look at: http://steps3d.narod.ru/tutorials/depth-to-eyez-tutorial.html
+	// http://steps3d.narod.ru/tutorials/depth-to-eyez-tutorial.html
 	for(int i=0; i < length; i++)
 	{
-		buf[i] = (Z_FAR * Z_NEAR) / (buf[i] * (Z_FAR - Z_NEAR) - Z_FAR);
+		buf[i] = -((Z_FAR * Z_NEAR) / (buf[i] * (Z_FAR - Z_NEAR) - Z_FAR));
 	}	
 }
+
+void RestorePerspectiveDepthFromBuffer(float* buf, int length)
+{
+	// 
+}
+
 
 using namespace std;
 
@@ -75,12 +84,14 @@ namespace SourceScene {
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		
-		/*double sw = 1.0;
+	/*	double sw = 1.0;
 		double aspect = ((double)h)/w;
 		double sh = sw * aspect;
 
-		glFrustum(-sw/2, sw/2, -sh/2, sh/2, Z_NEAR, Z_FAR);*/
+		glFrustum(-sw/2, sw/2, -sh/2, sh/2, Z_NEAR, Z_FAR);
+*/
 		gluPerspective(60, ((double)w)/h, 1, 100);
+
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
@@ -223,7 +234,7 @@ namespace RestoredScene
 	{
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-	
+		
 		double sw = 1.0;
 		double aspect = ((double)h)/w;
 		double sh = sw * aspect;
@@ -238,34 +249,46 @@ namespace RestoredScene
 		glViewport(W_WIDTH, 0, W_WIDTH, W_HEIGHT);
 		
 		glPushMatrix();
-		//glRotated(cam2.GetAngleXOZ(), 0, 1, 0);
-		//glTranslated(-cam2.X(), -cam2.Y(), -cam2.Z());
+		glRotated(cam2.GetAngleZ(), 1, 0, 0);
+		glRotated(cam2.GetAngleY(), 0, 1, 0);
+		glTranslated(-cam2.X(), -cam2.Y(), -cam2.Z());
 
 		glEnable(GL_DEPTH_TEST);
 		glPushMatrix();
 
 		glColor3d(1, 1, 1);
-		glBegin(GL_QUADS);
-		glVertex3d(-0.5, -0.5, zTest[2]);
-		glVertex3d(-0.5, 0.5, zTest[2]);
-		glVertex3d(0.5, 0.5, zTest[2]);
-		glVertex3d(0.5, -0.5, zTest[2]);
-		glEnd();
+		//glBegin(GL_QUADS);
+		//glVertex3d(-0.5, -0.5, zTest[2]);
+		//glVertex3d(-0.5, 0.5, zTest[2]);
+		//glVertex3d(0.5, 0.5, zTest[2]);
+		//glVertex3d(0.5, -0.5, zTest[2]);
+		//glEnd();
 
 		glPopMatrix();
-		glDisable(GL_DEPTH_TEST);
+	//	glDisable(GL_DEPTH_TEST);
 		
-		glReadPixels(480, 120, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
-	//	cout << "realVal=" << zTest[2]  << " realDepth=" << depth[0]; 
-		RestoreDepthFromBuffer(depth,1);
-	
-	//	cout << " restoredVal=" << depth[0] << endl;
+		glReadPixels(0, 0, W_WIDTH/2, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
+	//	cout << " realDepth=" << depth[0]; 
+		RestoreFrustumDepthFromBuffer(depth,W_WIDTH/2*W_HEIGHT);
+
+		glPointSize(2);
+		for(int y = 0; y<W_HEIGHT; y++)
+		{
+			for(int x = 0; x<W_WIDTH/2; x++)
+			{
+				if(x>W_WIDTH/2) x = 0;
+				glBegin(GL_POINTS);
+				glVertex3d(x*0.01, y*0.01, depth[W_WIDTH/2*y+x]*0.5);
+				glEnd();
+			}
+		}
+
+	//	cout << " restoredVal=" << (int)depth[0] << endl;
 		//zTest[2] = zTest[2] - 1;
 		
 		glPopMatrix();
 	}
 };	
-
 
 void DrawFrame(){
 		glMatrixMode(GL_PROJECTION);
@@ -284,6 +307,11 @@ void DrawFrame(){
 		glVertex2d( 1,  1);
 		glVertex2d( 1, -1);
 		glEnd();
+		
+		//glPushMatrix();
+		//glTranslated(0.95,0.95,0);
+		//glutSolidSphere(0.03,15,15);
+		//glPopMatrix();
 }
 void RenderFPS(int value){
 		
@@ -296,29 +324,32 @@ void RenderFPS(int value){
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	char buf[20];
-	sprintf(buf,"FPS: %d", value);
-		
+	char *buf;
+	buf = new char[100];
+
+
 	glColor3d(0,1,0);
+	sprintf(buf,"FPS: %d, %dx%d", value, W_WIDTH, W_HEIGHT);
+	glRasterPos3f (10, W_HEIGHT-25, 0);
+	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
+
+
+
+	glColor3d(0,1,0);
+	sprintf(buf,"X:%d, Y: %d, Z: %d", (int)cam1.X(), (int)cam1.Y(), (int)cam1.Z());
 	glRasterPos3f (10, 10, 0);
-	for(int i=0; buf[i]; i++) 
-	{
-		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
-	}
-	
+	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
+
+
+	glColor3d(0,1,0);
+	sprintf(buf,"X:%d, Y: %d, Z: %d", (int)cam2.X(), (int)cam2.Y(), (int)cam2.Z());
+	glRasterPos3f (W_WIDTH+10, 10,0);
+	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
+
+
+	delete[]buf;
+	glColor3d(0,1,0);
 	};
-void DrawFPS(IplImage * pic, int _fps, int clusters)
-{
-	CvPoint pt = cvPoint( W_WIDTH-100, W_HEIGHT-30 );
-    CvFont font;
-    cvInitFont( &font, CV_FONT_HERSHEY_SIMPLEX, 0.7, 0.7, 0, 0, CV_AA);
-	char buf[20];
-	sprintf(buf,"FPS: %d",_fps);
-	cvPutText(pic, buf, pt, &font, CV_RGB(100, 100, 255));
-	pt = cvPoint( 10, W_HEIGHT-30 );
-	sprintf(buf,"CLUSTERS: %d", clusters);
-	cvPutText(pic, buf, pt, &font, CV_RGB(100, 100, 255));
-}
 void SetConsole()
 {
     #define MY_BUFSIZE 1024 // Buffer size for console window titles.
@@ -334,7 +365,7 @@ void SetConsole()
     hwndFound=FindWindow(NULL, pszNewWindowTitle);
 
     SetConsoleTitle(pszOldWindowTitle);
-	SetWindowPos(hwndFound, 0, 0, 350, 800, 300, 0);
+	SetWindowPos(hwndFound, 0, 0, CONSOLEY, 800, 300, 0);
 }
 
 void reshape(int w, int h){
@@ -381,12 +412,12 @@ void keybord(unsigned char key, int x, int y){
 
 	if (key == 'w' || key == 246)
 	{
-		zTest[2] += 1;
+	//	zTest[2] += 1;
 		c->MoveForward();
 	}
 	if (key == 's' || key == 251)
 	{
-		zTest[2] -= 1;
+	//	zTest[2] -= 1;
 		c->MoveBack();
 	}	
 	if (key == 'a' || key == 244)
@@ -397,13 +428,21 @@ void keybord(unsigned char key, int x, int y){
 	{
 		c->MoveRight();
 	}
-	if (key == 'q')
+	if (key == 'q' || key == 233)
 	{
 		c->Rotate(-10, 0);
 	}
-	if (key == 'e')
+	if (key == 'e' || key == 243)
 	{
 		c->Rotate(10, 0);
+	}
+	if (key == 'r' || key == 234)
+	{
+		c->MoveUp(2);
+	}
+	if (key == 'f' || key == 224)
+	{
+		c->MoveDown(2);
 	}
 }
 void keybordUp(unsigned char key, int x, int y){
@@ -414,15 +453,18 @@ void click(int button, int state, int x, int y){
 	}
 	mx = x;
 	my = y;
+
+//	cout << x << " " << y << endl;
 }
-
-
 void motion(int x, int y)
 {
 	int dx = mx - x;
 	int dy = my - y;
-	cout << dx << " " << dy << endl;
+	if(activeScene == 0)
 	cam1.Rotate(-dx, -dy);
+	if(activeScene == 1)
+	cam2.Rotate(-dx, -dy);
+
 
 	mx = x;
 	my = y;
@@ -431,7 +473,7 @@ void motion(int x, int y)
 int main(int argc, char **argv)
 {
 	setlocale(LC_ALL, "RUS");
-	SetConsole(); //this item does not work!
+	SetConsole();
 	
 	//create buffers
 	CvSize s = cvSize(W_WIDTH, W_HEIGHT);
@@ -449,7 +491,7 @@ int main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(2 * W_WIDTH, W_HEIGHT);
 
-	glutInitWindowPosition(50, 700);
+	glutInitWindowPosition(0, 00);
 	glutCreateWindow("Восстановление трёхмерной сцены");
 	glutIdleFunc(idle);
 	glutReshapeFunc(reshape);
