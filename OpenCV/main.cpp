@@ -15,7 +15,7 @@ const double TAN_30 = 0.5773502692; // (!) a half VIEW_ANGLE
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
-#define SCREEN_MODE 2
+#define SCREEN_MODE 1
 
 #if SCREEN_MODE == 1
 	int W_WIDTH = 640;
@@ -44,6 +44,8 @@ float colorX[3] = {1,0,1}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0},
 int mx = 0;
 int my = 0;
 
+bool restore = false, no = false, one = true;
+
 IplImage *img = NULL;
 IplImage *gray = NULL;
 IplImage *dst = NULL;
@@ -51,6 +53,14 @@ float *depth;
 float *mainmas;
 
 double zTest[4] = {0,0,6,1};
+
+struct Frame
+{
+	double *depth, translation[4];
+};
+
+Frame fr1, fr2;
+
 void RestoreFrustumDepthFromBuffer(float* buf, int length)
 {
 	// http://steps3d.narod.ru/tutorials/depth-to-eyez-tutorial.html
@@ -249,6 +259,9 @@ namespace RestoredScene
 		glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
 		RestoreFrustumDepthFromBuffer(depth, W_WIDTH * W_HEIGHT);
 
+
+		if(restore)
+		{
 		double top, left;
 		SetProjectionParams(&top, &left);
 		double _h = 1 / (double) W_HEIGHT;
@@ -264,17 +277,41 @@ namespace RestoredScene
 			double _y = -top + 2 * top * _h * y; //[-top; top]
 			for(int x = 0; x < W_WIDTH; x++)
 			{
-				double z_real = depth[W_WIDTH*y+x];
+				double z_real = fr1.depth[W_WIDTH*y+x];
 				if (z_real == Z_FAR) continue;
 				double zz = z_real * _z;
 				double _x = left - 2 * left * _w * x; //[left; -left]
 				double x_real = _x * zz;
 				double y_real = _y * zz;
-				glVertex3d(x_real, y_real, z_real);
+				glVertex3d(x_real+fr1.translation[2], y_real+fr1.translation[1], z_real+fr1.translation[0]);
 			}
 		}
+
+		for(int y = 0; y < W_HEIGHT; y++)
+		{
+			double _y = -top + 2 * top * _h * y; //[-top; top]
+			for(int x = 0; x < W_WIDTH; x++)
+			{
+				double z_real = fr2.depth[W_WIDTH*y+x];
+				if (z_real == Z_FAR) continue;
+				double zz = z_real * _z;
+				double _x = left - 2 * left * _w * x; //[left; -left]
+				double x_real = _x * zz;
+				double y_real = _y * zz;
+				glVertex3d(x_real+fr2.translation[2], y_real+fr2.translation[1], z_real+fr2.translation[0]);
+			}
+		}
+
+
 		glEnd();
+		
+		no = true;
+		//restore = false;
+	}
+
+
 		glPopMatrix();
+
 	}
 };	
 
@@ -401,18 +438,38 @@ void keybord(unsigned char key, int x, int y){
 	if (key == 'w' || key == 246)
 	{
 		c->MoveForward();
+		if(!no)
+		if(one)
+		fr1.translation[0]+=2;
+		else
+		fr2.translation[0]+=2;
 	}
 	if (key == 's' || key == 251)
 	{
 		c->MoveBack();
+		if(!no)
+		if(one)
+		fr1.translation[0]-=2;
+		else
+		fr2.translation[0]-=2;
 	}	
 	if (key == 'a' || key == 244)
 	{
 		c->MoveLeft();
+		if(!no)
+		if(one)
+		fr1.translation[2]-=2;
+		else
+		fr2.translation[2]-=2;
 	}
 	if (key == 'd' || key == 226)
 	{
 		c->MoveRight();
+		if(!no)
+		if(one)
+		fr1.translation[2]+=2;
+		else
+		fr2.translation[2]+=2;
 	}
 	if (key == 'q' || key == 233)
 	{
@@ -429,6 +486,22 @@ void keybord(unsigned char key, int x, int y){
 	if (key == 'f' || key == 224)
 	{
 		c->MoveDown(0.2);
+	}
+	if (key == '1' || key == 49)
+	{
+		for(int i = 0; i<W_WIDTH * W_HEIGHT; i++) fr1.depth[i] = depth[i];
+		one = false;
+		fr1.translation[0] = fr2.translation[0];
+		fr1.translation[2] = fr2.translation[2];
+	}
+	if (key == '2' || key == 50)
+	{
+		for(int i = 0; i<W_WIDTH * W_HEIGHT; i++) fr2.depth[i] = depth[i];
+	}
+	if (key == 't' || key == 229)
+	{
+		if(!no)
+		restore = true;
 	}
 }
 void click(int button, int state, int x, int y){
@@ -467,6 +540,9 @@ int main(int argc, char **argv)
 	depth = new float[W_WIDTH * W_HEIGHT];
 	mainmas = new float[W_WIDTH * W_HEIGHT * 3];
 
+	fr1.depth = new double[W_WIDTH * W_HEIGHT];
+	fr2.depth = new double[W_WIDTH * W_HEIGHT];
+
 	//init OpenGL
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
@@ -489,6 +565,7 @@ int main(int argc, char **argv)
 	cvReleaseImage(&dst);
 	delete[] depth;
 	delete[] mainmas;
-	
+	delete[] fr1.depth;
+	delete[] fr1.depth;
 	return 0;
 }
