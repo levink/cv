@@ -6,15 +6,15 @@
 #include "mathdata.h"
 #include "glut.h"    
 
-#define TAN_30 0.57735026918962576450914878050196
-#define CTAN_30 1.7320508075688772935274463415059
+
 
 const double Z_NEAR = 1.0;
 const double Z_FAR = 100;
+const double TAN_30 = 0.5773502692;
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
-#define SCREEN_MODE 1
+#define SCREEN_MODE 2
 
 #if SCREEN_MODE == 1
 	int W_WIDTH = 640;
@@ -90,7 +90,7 @@ namespace SourceScene {
 
 		glFrustum(-sw/2, sw/2, -sh/2, sh/2, Z_NEAR, Z_FAR);
 */
-		gluPerspective(60, ((double)w)/h, 1, 100);
+		gluPerspective(60, ((double)w)/h, Z_NEAR, Z_FAR);
 
 
 		glMatrixMode(GL_MODELVIEW);
@@ -239,7 +239,8 @@ namespace RestoredScene
 		double aspect = ((double)h)/w;
 		double sh = sw * aspect;
 
-		glFrustum(-sw/2, sw/2, -sh/2, sh/2, Z_NEAR, Z_FAR);
+		//glFrustum(-sw/2, sw/2, -sh/2, sh/2, Z_NEAR, Z_FAR);
+		gluPerspective(60, ((double)w)/h, Z_NEAR, Z_FAR);
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
@@ -253,39 +254,21 @@ namespace RestoredScene
 		glRotated(cam2.GetAngleY(), 0, 1, 0);
 		glTranslated(-cam2.X(), -cam2.Y(), -cam2.Z());
 
-		glEnable(GL_DEPTH_TEST);
-		glPushMatrix();
+		
+		glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
+		RestoreFrustumDepthFromBuffer(depth, W_WIDTH * W_HEIGHT);
 
 		glColor3d(1, 1, 1);
-		//glBegin(GL_QUADS);
-		//glVertex3d(-0.5, -0.5, zTest[2]);
-		//glVertex3d(-0.5, 0.5, zTest[2]);
-		//glVertex3d(0.5, 0.5, zTest[2]);
-		//glVertex3d(0.5, -0.5, zTest[2]);
-		//glEnd();
-
-		glPopMatrix();
-	//	glDisable(GL_DEPTH_TEST);
-		
-		glReadPixels(0, 0, W_WIDTH/2, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
-	//	cout << " realDepth=" << depth[0]; 
-		RestoreFrustumDepthFromBuffer(depth,W_WIDTH/2*W_HEIGHT);
-
 		glPointSize(2);
-		for(int y = 0; y<W_HEIGHT; y++)
+		for(int y = 0; y < W_HEIGHT; y++)
 		{
-			for(int x = 0; x<W_WIDTH/2; x++)
+			for(int x = 0; x < W_WIDTH; x++)
 			{
-				if(x>W_WIDTH/2) x = 0;
 				glBegin(GL_POINTS);
-				glVertex3d(x*0.01, y*0.01, depth[W_WIDTH/2*y+x]*0.5);
+				glVertex3d(x * 0.01, y * 0.01, depth[W_WIDTH*y+x] * 0.5);
 				glEnd();
 			}
 		}
-
-	//	cout << " restoredVal=" << (int)depth[0] << endl;
-		//zTest[2] = zTest[2] - 1;
-		
 		glPopMatrix();
 	}
 };	
@@ -412,12 +395,10 @@ void keybord(unsigned char key, int x, int y){
 
 	if (key == 'w' || key == 246)
 	{
-	//	zTest[2] += 1;
 		c->MoveForward();
 	}
 	if (key == 's' || key == 251)
 	{
-	//	zTest[2] -= 1;
 		c->MoveBack();
 	}	
 	if (key == 'a' || key == 244)
@@ -438,14 +419,12 @@ void keybord(unsigned char key, int x, int y){
 	}
 	if (key == 'r' || key == 234)
 	{
-		c->MoveUp(2);
+		c->MoveUp(0.2);
 	}
 	if (key == 'f' || key == 224)
 	{
-		c->MoveDown(2);
+		c->MoveDown(0.2);
 	}
-}
-void keybordUp(unsigned char key, int x, int y){
 }
 void click(int button, int state, int x, int y){
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
@@ -453,8 +432,6 @@ void click(int button, int state, int x, int y){
 	}
 	mx = x;
 	my = y;
-
-//	cout << x << " " << y << endl;
 }
 void motion(int x, int y)
 {
@@ -464,7 +441,6 @@ void motion(int x, int y)
 	cam1.Rotate(-dx, -dy);
 	if(activeScene == 1)
 	cam2.Rotate(-dx, -dy);
-
 
 	mx = x;
 	my = y;
@@ -497,7 +473,6 @@ int main(int argc, char **argv)
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(keybord);
-	glutKeyboardUpFunc(keybordUp);
 	glutMouseFunc(click);
 	glutMotionFunc(motion);
 	
