@@ -7,10 +7,11 @@
 #include "glut.h"    
 
 
-
-const double Z_NEAR = 1.0;
+const double Z_NEAR = 10.0;
 const double Z_FAR = 100;
-const double TAN_30 = 0.5773502692;
+const double VIEW_ANGLE = 60; 
+const double TAN_30 = 0.5773502692; // (!) a half VIEW_ANGLE
+
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
@@ -26,8 +27,8 @@ const double TAN_30 = 0.5773502692;
 	int CONSOLEY = 279;
 #endif
 
-Camera cam1 = Camera(30, 10, 30, 90, 2);
-Camera cam2 = Camera(0, 0, 0, 180, 1);
+Camera cam1 = Camera(5, 5, 10, 90, 2);
+Camera cam2 = Camera(0, 0, 50, 180, 1);
 int activeScene = 0;
 
 long prevTime = GetTickCount();
@@ -49,7 +50,6 @@ IplImage *dst = NULL;
 float *depth;
 float *mainmas;
 
-
 double zTest[4] = {0,0,6,1};
 void RestoreFrustumDepthFromBuffer(float* buf, int length)
 {
@@ -59,12 +59,13 @@ void RestoreFrustumDepthFromBuffer(float* buf, int length)
 		buf[i] = -((Z_FAR * Z_NEAR) / (buf[i] * (Z_FAR - Z_NEAR) - Z_FAR));
 	}	
 }
-
-void RestorePerspectiveDepthFromBuffer(float* buf, int length)
-{
-	// 
+void SetProjectionParams(double *top, double *left, double *aspect = NULL){
+	double tmp_a = 0;
+	if (!aspect) aspect = &tmp_a;
+	*aspect = ((double)W_WIDTH) / W_HEIGHT;
+	if (top) * top = Z_NEAR * TAN_30;
+	if (top && left) *left = -(*top) * (*aspect);
 }
-
 
 using namespace std;
 
@@ -79,19 +80,15 @@ namespace SourceScene {
 		else teapotAngle += 1;
 		glutPostRedisplay();
 	}
-	void reshape(int w, int h)
+	void reshape(int _w, int _h)
 	{
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		
-	/*	double sw = 1.0;
-		double aspect = ((double)h)/w;
-		double sh = sw * aspect;
-
-		glFrustum(-sw/2, sw/2, -sh/2, sh/2, Z_NEAR, Z_FAR);
-*/
-		gluPerspective(60, ((double)w)/h, Z_NEAR, Z_FAR);
-
+		double top, left, aspect;
+		SetProjectionParams(&top, &left, &aspect);
+		glFrustum(left, -left, -top, top, Z_NEAR, Z_FAR);
+		//gluPerspective(VIEW_ANGLE, aspect, Z_NEAR, Z_FAR);
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
@@ -118,15 +115,12 @@ namespace SourceScene {
 
 		DrawTeapots();
 		DrawWalls();
-
+		
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_LIGHT0);
 		glDisable(GL_LIGHTING);
 
 		glPopMatrix();
-		
-		//glReadPixels(0,0, W_WIDTH, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
-		//RestoreDepthFromBuffer(depth,1);
 	}
 	
 	void RenderFigure(int num){
@@ -230,18 +224,16 @@ namespace SourceScene {
 
 namespace RestoredScene
 {		
-	void reshape(int w, int h)
+	void reshape(int _w, int _h)
 	{
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		
-		double sw = 1.0;
-		double aspect = ((double)h)/w;
-		double sh = sw * aspect;
-
-		//glFrustum(-sw/2, sw/2, -sh/2, sh/2, Z_NEAR, Z_FAR);
-		gluPerspective(60, ((double)w)/h, Z_NEAR, Z_FAR);
-
+		double top, left, aspect;
+		SetProjectionParams(&top, &left, &aspect);
+		//glFrustum(left, -left, -top, top, Z_NEAR, Z_FAR);
+		gluPerspective(VIEW_ANGLE, aspect, 1, Z_FAR);
+		
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 	}
@@ -254,21 +246,34 @@ namespace RestoredScene
 		glRotated(cam2.GetAngleY(), 0, 1, 0);
 		glTranslated(-cam2.X(), -cam2.Y(), -cam2.Z());
 
-		
 		glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
 		RestoreFrustumDepthFromBuffer(depth, W_WIDTH * W_HEIGHT);
 
+		double top, left;
+		SetProjectionParams(&top, &left);
+		double _h = 1 / (double) W_HEIGHT;
+		double _w = 1 / (double) W_WIDTH;
+		double _z = 1 / (double) Z_NEAR;
+
 		glColor3d(1, 1, 1);
 		glPointSize(2);
+		glBegin(GL_POINTS);
+
 		for(int y = 0; y < W_HEIGHT; y++)
 		{
+			double _y = -top + 2 * top * _h * y; //[-top; top]
 			for(int x = 0; x < W_WIDTH; x++)
 			{
-				glBegin(GL_POINTS);
-				glVertex3d(x * 0.01, y * 0.01, depth[W_WIDTH*y+x] * 0.5);
-				glEnd();
+				double z_real = depth[W_WIDTH*y+x];
+				if (z_real == Z_FAR) continue;
+				double zz = z_real * _z;
+				double _x = left - 2 * left * _w * x; //[left; -left]
+				double x_real = _x * zz;
+				double y_real = _y * zz;
+				glVertex3d(x_real, y_real, z_real);
 			}
 		}
+		glEnd();
 		glPopMatrix();
 	}
 };	
