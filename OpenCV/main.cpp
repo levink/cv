@@ -6,7 +6,7 @@
 #include "mathdata.h"
 #include "glut.h"    
 
-
+//GL_DEPTH_BITS = 24 bit per pixel
 const double Z_NEAR = 10.0;
 const double Z_FAR = 100;
 const double VIEW_ANGLE = 60; 
@@ -15,7 +15,7 @@ const double TAN_30 = 0.5773502692; // (!) a half VIEW_ANGLE
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
-#define SCREEN_MODE 1
+#define SCREEN_MODE 2
 
 #if SCREEN_MODE == 1
 	int W_WIDTH = 640;
@@ -27,8 +27,8 @@ const double TAN_30 = 0.5773502692; // (!) a half VIEW_ANGLE
 	int CONSOLEY = 279;
 #endif
 
-Camera cam1 = Camera(5, 5, 10, 90, 2);
-Camera cam2 = Camera(0, 0, 50, 180, 1);
+Camera cam1 = Camera(0, 10, 0, 0, 2);
+Camera cam2 = Camera(0, 10, 0, 0, 1);
 int activeScene = 0;
 
 long prevTime = GetTickCount();
@@ -44,29 +44,19 @@ float colorX[3] = {1,0,1}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0},
 int mx = 0;
 int my = 0;
 
-bool restore = false, no = false, one = true;
-
-IplImage *img = NULL;
-IplImage *gray = NULL;
-IplImage *dst = NULL;
-float *depth;
-float *mainmas;
-
-double zTest[4] = {0,0,6,1};
-
+const int fCount = 1;
 struct Frame
 {
-	double *depth, translation[4];
-};
+	float *depth;
+	double camOffset[3];
+} f[2];
 
-Frame fr1, fr2;
-
-void RestoreFrustumDepthFromBuffer(float* buf, int length)
+void RestoreDepthFromBuffer(float* buf, int length)
 {
 	// http://steps3d.narod.ru/tutorials/depth-to-eyez-tutorial.html
 	for(int i=0; i < length; i++)
 	{
-		buf[i] = -((Z_FAR * Z_NEAR) / (buf[i] * (Z_FAR - Z_NEAR) - Z_FAR));
+		buf[i] = (Z_FAR * Z_NEAR) / (buf[i] * (Z_FAR - Z_NEAR) - Z_FAR);
 	}	
 }
 void SetProjectionParams(double *top, double *left, double *aspect = NULL){
@@ -75,6 +65,18 @@ void SetProjectionParams(double *top, double *left, double *aspect = NULL){
 	*aspect = ((double)W_WIDTH) / W_HEIGHT;
 	if (top) * top = Z_NEAR * TAN_30;
 	if (top && left) *left = -(*top) * (*aspect);
+}
+void CreateFrame(Frame *p, Camera *c){
+	if(!p) return;
+	
+	// 1. Reading to the p->depth at once!
+	// 2. There are static frame size here
+	glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, p->depth); //GL_DEPTH_BITS = 24 bit per pixel
+	RestoreDepthFromBuffer(p->depth, W_WIDTH * W_HEIGHT);
+
+	p->camOffset[0] = c->X();
+	p->camOffset[1] = c->Y();
+	p->camOffset[2] = c->Z();
 }
 
 using namespace std;
@@ -123,9 +125,15 @@ namespace SourceScene {
 		glEnable(GL_LIGHT0);
 		glEnable(GL_DEPTH_TEST);
 
+		glPushMatrix();
+		glRotated(90,0,1,0);
+		glTranslated(-50, 0, -50);
+
 		DrawTeapots();
 		DrawWalls();
 		
+		glPopMatrix();
+
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_LIGHT0);
 		glDisable(GL_LIGHTING);
@@ -233,7 +241,9 @@ namespace SourceScene {
 };
 
 namespace RestoredScene
-{		
+{	
+	void DrawFrames();
+	
 	void reshape(int _w, int _h)
 	{
 		glMatrixMode(GL_PROJECTION);
@@ -256,12 +266,12 @@ namespace RestoredScene
 		glRotated(cam2.GetAngleY(), 0, 1, 0);
 		glTranslated(-cam2.X(), -cam2.Y(), -cam2.Z());
 
-		glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, depth); //GL_DEPTH_BITS = 24 bit per pixel
-		RestoreFrustumDepthFromBuffer(depth, W_WIDTH * W_HEIGHT);
+		DrawFrames();
 
-
-		if(restore)
-		{
+		glPopMatrix();
+	}
+	void DrawFrames()
+	{
 		double top, left;
 		SetProjectionParams(&top, &left);
 		double _h = 1 / (double) W_HEIGHT;
@@ -272,50 +282,32 @@ namespace RestoredScene
 		glPointSize(2);
 		glBegin(GL_POINTS);
 
-		for(int y = 0; y < W_HEIGHT; y++)
+		for(int fr=0; fr < fCount; fr++)
 		{
-			double _y = -top + 2 * top * _h * y; //[-top; top]
-			for(int x = 0; x < W_WIDTH; x++)
+			Frame *_f = &f[fr];
+			for(int y = 0; y < W_HEIGHT; y++)
 			{
-				double z_real = fr1.depth[W_WIDTH*y+x];
-				if (z_real == Z_FAR) continue;
-				double zz = z_real * _z;
-				double _x = left - 2 * left * _w * x; //[left; -left]
-				double x_real = _x * zz;
-				double y_real = _y * zz;
-				glVertex3d(x_real+fr1.translation[2], y_real+fr1.translation[1], z_real+fr1.translation[0]);
+				double _y = top - 2 * top * _h * y; //[top; -top]
+				for(int x = 0; x < W_WIDTH; x++)
+				{
+					double z_real = _f -> depth[W_WIDTH * y + x];
+					if (z_real == Z_FAR) continue;
+					double zz = z_real * _z;
+					double _x = left - 2 * left * _w * x; //[left; -left]
+					double x_real = _x * zz;
+					double y_real = _y * zz;
+					glVertex3d(x_real, y_real, z_real);
+				}
 			}
 		}
-
-		for(int y = 0; y < W_HEIGHT; y++)
-		{
-			double _y = -top + 2 * top * _h * y; //[-top; top]
-			for(int x = 0; x < W_WIDTH; x++)
-			{
-				double z_real = fr2.depth[W_WIDTH*y+x];
-				if (z_real == Z_FAR) continue;
-				double zz = z_real * _z;
-				double _x = left - 2 * left * _w * x; //[left; -left]
-				double x_real = _x * zz;
-				double y_real = _y * zz;
-				glVertex3d(x_real+fr2.translation[2], y_real+fr2.translation[1], z_real+fr2.translation[0]);
-			}
-		}
-
-
 		glEnd();
-		
-		no = true;
-		//restore = false;
-	}
-
-
-		glPopMatrix();
-
 	}
 };	
 
-void DrawFrame(){
+void DrawFrame(int sceneNumber){
+		if(sceneNumber == 0) 	glViewport(0, 0, W_WIDTH, W_HEIGHT);
+		else if (sceneNumber == 1) glViewport(W_WIDTH, 0, W_WIDTH, W_HEIGHT);
+
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		glOrtho(-1,1, -1,1, 0,1);
@@ -332,11 +324,6 @@ void DrawFrame(){
 		glVertex2d( 1,  1);
 		glVertex2d( 1, -1);
 		glEnd();
-		
-		//glPushMatrix();
-		//glTranslated(0.95,0.95,0);
-		//glutSolidSphere(0.03,15,15);
-		//glPopMatrix();
 }
 void RenderFPS(int value){
 		
@@ -412,16 +399,30 @@ void display(void){
 		prevTime = curTime;
 	} 
 	else frameCount++;
-	
 		
 	SourceScene::reshape(W_WIDTH, W_HEIGHT); 
 	SourceScene::display();
-	if (activeScene == 0) DrawFrame();
+	CreateFrame(&f[0], &cam1);
+
+	/*
+	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	cam1.MoveRight();
+	cam1.MoveRight();
+	cam1.MoveRight();
+	SourceScene::display();
+	CreateFrame(&f[1], &cam1);
+
+	cam1.MoveLeft();
+	cam1.MoveLeft();
+	cam1.MoveLeft();
+	
+	*/
 
 	RestoredScene::reshape(W_WIDTH, W_HEIGHT);
 	RestoredScene::display();
-	if (activeScene == 1) DrawFrame();
-
+	
+	DrawFrame(activeScene);
 	RenderFPS(fps);
 
 	glFlush();
@@ -438,38 +439,18 @@ void keybord(unsigned char key, int x, int y){
 	if (key == 'w' || key == 246)
 	{
 		c->MoveForward();
-		if(!no)
-		if(one)
-		fr1.translation[0]+=2;
-		else
-		fr2.translation[0]+=2;
 	}
 	if (key == 's' || key == 251)
 	{
 		c->MoveBack();
-		if(!no)
-		if(one)
-		fr1.translation[0]-=2;
-		else
-		fr2.translation[0]-=2;
 	}	
 	if (key == 'a' || key == 244)
 	{
 		c->MoveLeft();
-		if(!no)
-		if(one)
-		fr1.translation[2]-=2;
-		else
-		fr2.translation[2]-=2;
 	}
 	if (key == 'd' || key == 226)
 	{
 		c->MoveRight();
-		if(!no)
-		if(one)
-		fr1.translation[2]+=2;
-		else
-		fr2.translation[2]+=2;
 	}
 	if (key == 'q' || key == 233)
 	{
@@ -486,22 +467,6 @@ void keybord(unsigned char key, int x, int y){
 	if (key == 'f' || key == 224)
 	{
 		c->MoveDown(0.2);
-	}
-	if (key == '1' || key == 49)
-	{
-		for(int i = 0; i<W_WIDTH * W_HEIGHT; i++) fr1.depth[i] = depth[i];
-		one = false;
-		fr1.translation[0] = fr2.translation[0];
-		fr1.translation[2] = fr2.translation[2];
-	}
-	if (key == '2' || key == 50)
-	{
-		for(int i = 0; i<W_WIDTH * W_HEIGHT; i++) fr2.depth[i] = depth[i];
-	}
-	if (key == 't' || key == 229)
-	{
-		if(!no)
-		restore = true;
 	}
 }
 void click(int button, int state, int x, int y){
@@ -531,17 +496,8 @@ int main(int argc, char **argv)
 	
 	//create buffers
 	CvSize s = cvSize(W_WIDTH, W_HEIGHT);
-	img = cvCreateImage(s, IPL_DEPTH_8U, 3);
-	gray = cvCreateImage(s, IPL_DEPTH_8U, 1);
-	dst = cvCreateImage(s, IPL_DEPTH_8U, 1);
-	img->origin = IPL_ORIGIN_BL;
-	gray->origin = IPL_ORIGIN_BL;
-	dst->origin = IPL_ORIGIN_BL;
-	depth = new float[W_WIDTH * W_HEIGHT];
-	mainmas = new float[W_WIDTH * W_HEIGHT * 3];
-
-	fr1.depth = new double[W_WIDTH * W_HEIGHT];
-	fr2.depth = new double[W_WIDTH * W_HEIGHT];
+	f[0].depth = new float[W_WIDTH * W_HEIGHT];
+	f[1].depth = new float[W_WIDTH * W_HEIGHT];
 
 	//init OpenGL
 	glutInit(&argc, argv);
@@ -560,12 +516,7 @@ int main(int argc, char **argv)
 	glutMainLoop();
 	
 	//release data
-	cvReleaseImage(&img);
-	cvReleaseImage(&gray);
-	cvReleaseImage(&dst);
-	delete[] depth;
-	delete[] mainmas;
-	delete[] fr1.depth;
-	delete[] fr1.depth;
+	delete[] f[0].depth;
+	delete[] f[1].depth;
 	return 0;
 }
