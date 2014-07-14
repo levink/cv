@@ -2,9 +2,10 @@
 #include <cv.h>
 #include <iostream>
 #include <Windows.h>
-#include "camera.h"
-#include "mathdata.h"
 #include "glut.h"    
+#include "camera.h"
+#include "master.h"
+#include "mathdata.h"
 
 //GL_DEPTH_BITS = 24 bit per pixel
 const double Z_NEAR = 10.0;
@@ -44,21 +45,11 @@ float colorX[3] = {1,0,1}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0},
 int mx = 0;
 int my = 0;
 
-const int fCount = 1;
-struct Frame
-{
-	float *depth;
-	double camOffset[3];
-} f[2];
+Master* master = NULL;
+bool createFrame = false;
 
-void RestoreDepthFromBuffer(float* buf, int length)
-{
-	// http://steps3d.narod.ru/tutorials/depth-to-eyez-tutorial.html
-	for(int i=0; i < length; i++)
-	{
-		buf[i] = (Z_FAR * Z_NEAR) / (buf[i] * (Z_FAR - Z_NEAR) - Z_FAR);
-	}	
-}
+
+
 void SetProjectionParams(double *top, double *left, double *aspect = NULL){
 	double tmp_a = 0;
 	if (!aspect) aspect = &tmp_a;
@@ -66,18 +57,7 @@ void SetProjectionParams(double *top, double *left, double *aspect = NULL){
 	if (top) * top = Z_NEAR * TAN_30;
 	if (top && left) *left = -(*top) * (*aspect);
 }
-void CreateFrame(Frame *p, Camera *c){
-	if(!p) return;
-	
-	// 1. Reading to the p->depth at once!
-	// 2. There are static frame size here
-	glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_DEPTH_COMPONENT, GL_FLOAT, p->depth); //GL_DEPTH_BITS = 24 bit per pixel
-	RestoreDepthFromBuffer(p->depth, W_WIDTH * W_HEIGHT);
 
-	p->camOffset[0] = c->X();
-	p->camOffset[1] = c->Y();
-	p->camOffset[2] = c->Z();
-}
 
 using namespace std;
 
@@ -280,27 +260,36 @@ namespace RestoredScene
 
 		glColor3d(1, 1, 1);
 		glPointSize(2);
-		glBegin(GL_POINTS);
+		
 
-		for(int fr=0; fr < fCount; fr++)
+		for(int fr=0; fr < master->fCount; fr++)
 		{
-			Frame *_f = &f[fr];
+			Frame *f = &master->f[fr];
+			glPushMatrix();
+			double x = f->camOffset[0];
+			double y = f->camOffset[1];
+			double z = f->camOffset[2];
+			glTranslated(x, y, z); 
+			glBegin(GL_POINTS);
 			for(int y = 0; y < W_HEIGHT; y++)
 			{
-				double _y = top - 2 * top * _h * y; //[top; -top]
+				// Y(openGL) == WindowHeight - Y(window)
+				double _y = top - 2 * top * _h * (W_HEIGHT - y); //[-top; top]
 				for(int x = 0; x < W_WIDTH; x++)
 				{
-					double z_real = _f -> depth[W_WIDTH * y + x];
+					double z_real = f -> depth[W_WIDTH * y + x];
 					if (z_real == Z_FAR) continue;
-					double zz = z_real * _z;
+					double zz = abs(z_real * _z);
 					double _x = left - 2 * left * _w * x; //[left; -left]
 					double x_real = _x * zz;
 					double y_real = _y * zz;
 					glVertex3d(x_real, y_real, z_real);
 				}
 			}
+			glEnd();
+			glPopMatrix();
 		}
-		glEnd();
+		
 	}
 };	
 
@@ -325,8 +314,8 @@ void DrawFrame(int sceneNumber){
 		glVertex2d( 1, -1);
 		glEnd();
 }
-void RenderFPS(int value){
-		
+void RenderFPS(int value)
+{		
 	glViewport(0, 0, 2 * W_WIDTH, W_HEIGHT);
 
 	glMatrixMode(GL_PROJECTION);
@@ -345,23 +334,22 @@ void RenderFPS(int value){
 	glRasterPos3f (10, W_HEIGHT-25, 0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
-
-
-	glColor3d(0,1,0);
 	sprintf(buf,"X:%d, Y: %d, Z: %d", (int)cam1.X(), (int)cam1.Y(), (int)cam1.Z());
 	glRasterPos3f (10, 10, 0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
-
-	glColor3d(0,1,0);
 	sprintf(buf,"X:%d, Y: %d, Z: %d", (int)cam2.X(), (int)cam2.Y(), (int)cam2.Z());
 	glRasterPos3f (W_WIDTH+10, 10,0);
+	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
+
+	sprintf(buf,"Total frames: %d / %d", master->fCount, master->Capacity());
+	glRasterPos3f (2 * W_WIDTH - 150, 10, 0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
 
 	delete[]buf;
 	glColor3d(0,1,0);
-	};
+}
 void SetConsole()
 {
     #define MY_BUFSIZE 1024 // Buffer size for console window titles.
@@ -402,23 +390,13 @@ void display(void){
 		
 	SourceScene::reshape(W_WIDTH, W_HEIGHT); 
 	SourceScene::display();
-	CreateFrame(&f[0], &cam1);
-
-	/*
 	
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	cam1.MoveRight();
-	cam1.MoveRight();
-	cam1.MoveRight();
-	SourceScene::display();
-	CreateFrame(&f[1], &cam1);
-
-	cam1.MoveLeft();
-	cam1.MoveLeft();
-	cam1.MoveLeft();
+	if (createFrame)
+	{
+		master->CreateFrame(0, 0, W_WIDTH, W_HEIGHT, &cam1);
+		createFrame = false;
+	}
 	
-	*/
-
 	RestoredScene::reshape(W_WIDTH, W_HEIGHT);
 	RestoredScene::display();
 	
@@ -468,6 +446,10 @@ void keybord(unsigned char key, int x, int y){
 	{
 		c->MoveDown(0.2);
 	}
+	if (key == 'x')
+	{
+		createFrame = true;
+	}
 }
 void click(int button, int state, int x, int y){
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
@@ -494,10 +476,8 @@ int main(int argc, char **argv)
 	setlocale(LC_ALL, "RUS");
 	SetConsole();
 	
-	//create buffers
-	CvSize s = cvSize(W_WIDTH, W_HEIGHT);
-	f[0].depth = new float[W_WIDTH * W_HEIGHT];
-	f[1].depth = new float[W_WIDTH * W_HEIGHT];
+	//create data
+	master = new Master(2, Z_NEAR, Z_FAR);
 
 	//init OpenGL
 	glutInit(&argc, argv);
@@ -516,7 +496,6 @@ int main(int argc, char **argv)
 	glutMainLoop();
 	
 	//release data
-	delete[] f[0].depth;
-	delete[] f[1].depth;
+	delete master;
 	return 0;
 }

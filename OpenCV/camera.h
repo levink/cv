@@ -82,6 +82,23 @@ public:
 	{
 		Move(0, -step, 0);
 	}
+
+	void MoveForward(double dist)
+	{
+		Move(dist * sin(a * D2R), 0, -dist * cos(a * D2R));
+	}
+	void MoveBack(double dist)
+	{
+		Move(-dist * sin(a * D2R), 0, dist * cos(a * D2R));
+	}
+	void MoveRight(double dist)
+	{
+		Move(dist * cos(a * D2R), 0, dist * sin(a * D2R));
+	}
+	void MoveLeft(double dist)
+	{
+		Move(-dist * cos(a * D2R), 0, -dist * sin(a * D2R));
+	}
 };
 
 Camera::Camera(float x , float y, float z, float angle, double velocity)

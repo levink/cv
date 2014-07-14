@@ -74,6 +74,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="master.h" />
     <ClInclude Include="mathdata.h" />
     <ClInclude Include="camera.h" />
   </ItemGroup>
