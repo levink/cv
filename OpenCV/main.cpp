@@ -16,7 +16,7 @@ const double TAN_30 = 0.5773502692; // (!) a half VIEW_ANGLE
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
-#define SCREEN_MODE 2
+#define SCREEN_MODE 1
 
 #if SCREEN_MODE == 1
 	int W_WIDTH = 640;
@@ -266,15 +266,14 @@ namespace RestoredScene
 		{
 			Frame *f = &master->f[fr];
 			glPushMatrix();
-			double x = f->camOffset[0];
-			double y = f->camOffset[1];
-			double z = f->camOffset[2];
-			glTranslated(x, y, z); 
+			double cx = f->camOffset[0];
+			double cy = f->camOffset[1];
+			double cz = f->camOffset[2];
+			glTranslated(cx, cy, cz); 
 			glBegin(GL_POINTS);
 			for(int y = 0; y < W_HEIGHT; y++)
 			{
-				// Y(openGL) == WindowHeight - Y(window)
-				double _y = top - 2 * top * _h * (W_HEIGHT - y); //[-top; top]
+				double _y = -top + 2 * top * _h * y; //[-top; top]
 				for(int x = 0; x < W_WIDTH; x++)
 				{
 					double z_real = f -> depth[W_WIDTH * y + x];
