@@ -8,15 +8,16 @@
 #include "mathdata.h"
 
 //GL_DEPTH_BITS = 24 bit per pixel
-const double Z_NEAR = 10.0;
+const double Z_NEAR = 1;
 const double Z_FAR = 100;
 const double VIEW_ANGLE = 60; 
 const double TAN_30 = 0.5773502692; // (!) a half VIEW_ANGLE
 
-
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
 #define SCREEN_MODE 1
+
+#pragma region Defines
 
 #if SCREEN_MODE == 1
 	int W_WIDTH = 640;
@@ -27,14 +28,18 @@ const double TAN_30 = 0.5773502692; // (!) a half VIEW_ANGLE
 	int W_HEIGHT = 240;
 	int CONSOLEY = 279;
 #endif
+#ifndef SCREEN_MODE
+#error
+#endif
+
+#pragma endregion
 
 Camera cam1 = Camera(0, 10, 0, 0, 2);
 Camera cam2 = Camera(0, 10, 0, 0, 1);
 int activeScene = 0;
 
 long prevTime = GetTickCount();
-int fps = 0;
-int frameCount = 0;
+int fps = 0, frameCount = 0;
 
 float arr[4] = {50.0, 10.0, 50.0, 1.0};
 float arr2[3] = {50.0, -1.0, 50.0};
@@ -42,13 +47,10 @@ float colorBlack[3] = {0.5, 0.3, 0.2};
 float colorX[3] = {1,0,1}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0}, 
 	colorA[3] = {1,1,0}, colorTeapot[3] = {0,1,0}, amb[4] = {0,1,0,0};
 
-int mx = 0;
-int my = 0;
+int mx = 0, my = 0;
 
 Master* master = NULL;
 bool createFrame = false;
-
-
 
 void SetProjectionParams(double *top, double *left, double *aspect = NULL){
 	double tmp_a = 0;
@@ -57,7 +59,6 @@ void SetProjectionParams(double *top, double *left, double *aspect = NULL){
 	if (top) * top = Z_NEAR * TAN_30;
 	if (top && left) *left = -(*top) * (*aspect);
 }
-
 
 using namespace std;
 
@@ -445,7 +446,7 @@ void keybord(unsigned char key, int x, int y){
 	{
 		c->MoveDown(0.2);
 	}
-	if (key == 'x')
+	if (key == 'x' || key == 247)
 	{
 		createFrame = true;
 	}
@@ -491,8 +492,8 @@ int main(int argc, char **argv)
 	glutKeyboardFunc(keybord);
 	glutMouseFunc(click);
 	glutMotionFunc(motion);
-	
 	glutMainLoop();
+
 	
 	//release data
 	delete master;
