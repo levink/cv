@@ -53,10 +53,10 @@ public:
 	{
 		aZ += vertical;
 		a += horizontal;
-		if(aZ > 360) aZ = 0;
-		if(aZ < 0) aZ = 360;
-		if(a > 360) a = 0;
-		if(a < 0) a = 360;
+		if(aZ >= 360) aZ = aZ-360;
+		if(aZ < 0) aZ = aZ + 360;
+		if(a >= 360) a -= 360;
+		if(a < 0) a += 360;
 	}
 	void MoveForward()
 	{

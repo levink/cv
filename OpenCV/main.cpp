@@ -271,6 +271,7 @@ namespace RestoredScene
 			double cy = f->camOffset[1];
 			double cz = f->camOffset[2];
 			glTranslated(cx, cy, cz); 
+			glRotated(-f->hAngle, 0,1,0);
 			glBegin(GL_POINTS);
 			for(int y = 0; y < W_HEIGHT; y++)
 			{
@@ -433,18 +434,20 @@ void keybord(unsigned char key, int x, int y){
 	if (key == 'q' || key == 233)
 	{
 		c->Rotate(-10, 0);
+	//	cout << c->GetAngleY() << endl;
 	}
 	if (key == 'e' || key == 243)
 	{
 		c->Rotate(10, 0);
+	//	cout << c->GetAngleY() << endl;
 	}
 	if (key == 'r' || key == 234)
 	{
-		c->MoveUp(0.2);
+		c->MoveUp(0.7);
 	}
 	if (key == 'f' || key == 224)
 	{
-		c->MoveDown(0.2);
+		c->MoveDown(0.7);
 	}
 	if (key == 'x' || key == 247)
 	{
@@ -463,7 +466,7 @@ void motion(int x, int y)
 	int dx = mx - x;
 	int dy = my - y;
 	if(activeScene == 0)
-	cam1.Rotate(-dx, -dy);
+	cam1.Rotate(-dx,0/* -dy*/);
 	if(activeScene == 1)
 	cam2.Rotate(-dx, -dy);
 
@@ -477,7 +480,7 @@ int main(int argc, char **argv)
 	SetConsole();
 	
 	//create data
-	master = new Master(2, Z_NEAR, Z_FAR);
+	master = new Master(10, Z_NEAR, Z_FAR);
 
 	//init OpenGL
 	glutInit(&argc, argv);

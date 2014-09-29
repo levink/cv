@@ -7,7 +7,7 @@
 struct Frame
 {
 	float *depth;
-	double camOffset[3];
+	double camOffset[3], hAngle, vAngle;
 };
 
 class Master
@@ -15,6 +15,7 @@ class Master
 	int _length;
 	double _zNear;
 	double _zFar;
+	vector<double>cloud;
 	void RestoreDepthFromBuffer(float* buf, int length)
 	{
 		// http://steps3d.narod.ru/tutorials/depth-to-eyez-tutorial.html
@@ -66,6 +67,7 @@ void Master::CreateFrame(GLint startX, GLint startY, GLsizei w, GLsizei h, Camer
 	fr->camOffset[0] = c->X();
 	fr->camOffset[1] = c->Y();
 	fr->camOffset[2] = c->Z();
+	fr->hAngle = c->GetAngleY();
 
 	fCount++;
 }
