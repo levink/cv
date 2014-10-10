@@ -261,7 +261,6 @@ namespace RestoredScene
 
 		glColor3d(1, 1, 1);
 		glPointSize(2);
-		
 
 		for(int fr=0; fr < master->fCount; fr++)
 		{
@@ -272,6 +271,14 @@ namespace RestoredScene
 			double cz = f->camOffset[2];
 			glTranslated(cx, cy, cz); 
 			glRotated(-f->hAngle, 0,1,0);
+			double y[3][3] = {
+			{ cos(f->hAngle*D2R), 0, cos(f->hAngle*D2R)},
+			{ 0, 1, 0 },
+			{ -sin(f->hAngle*D2R), 0, cos(f->hAngle*D2R)} 
+			};
+
+			Matrix RotateMatrix = Matrix(y);
+				
 			glBegin(GL_POINTS);
 			for(int y = 0; y < W_HEIGHT; y++)
 			{
@@ -284,7 +291,11 @@ namespace RestoredScene
 					double _x = left - 2 * left * _w * x; //[left; -left]
 					double x_real = _x * zz;
 					double y_real = _y * zz;
-					glVertex3d(x_real, y_real, z_real);
+
+					Vector3d xyz;
+					xyz.e[0] = x_real; xyz.e[1] = y_real; xyz.e[2] = z_real; 
+					xyz = RotateMatrix*xyz;
+					glVertex3d(xyz.e[0], xyz.e[1], xyz.e[2]);
 				}
 			}
 			glEnd();
