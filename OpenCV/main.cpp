@@ -5,7 +5,8 @@
 #include "glut.h"    
 #include "camera.h"
 #include "master.h"
-#include "mathdata.h"
+#include "phys\Geometry.h"
+
 
 //GL_DEPTH_BITS = 24 bit per pixel
 const double Z_NEAR = 1;
@@ -270,14 +271,15 @@ namespace RestoredScene
 			double cy = f->camOffset[1];
 			double cz = f->camOffset[2];
 			glTranslated(cx, cy, cz); 
-			glRotated(-f->hAngle, 0,1,0);
+	//		glRotated(-f->hAngle, 0,1,0);
 			double y[3][3] = {
-			{ cos(f->hAngle*D2R), 0, cos(f->hAngle*D2R)},
+			{ cos(f->hAngle*D2R), 0, sin(f->hAngle*D2R)},
 			{ 0, 1, 0 },
 			{ -sin(f->hAngle*D2R), 0, cos(f->hAngle*D2R)} 
 			};
-
+			
 			Matrix RotateMatrix = Matrix(y);
+			RotateMatrix = RotateMatrix.Invert();
 				
 			glBegin(GL_POINTS);
 			for(int y = 0; y < W_HEIGHT; y++)
@@ -292,10 +294,9 @@ namespace RestoredScene
 					double x_real = _x * zz;
 					double y_real = _y * zz;
 
-					Vector3d xyz;
-					xyz.e[0] = x_real; xyz.e[1] = y_real; xyz.e[2] = z_real; 
+					Vector xyz = Vector(x_real, y_real, z_real);
 					xyz = RotateMatrix*xyz;
-					glVertex3d(xyz.e[0], xyz.e[1], xyz.e[2]);
+					glVertex3d(xyz.GetX(), xyz.GetY(), xyz.GetX());
 				}
 			}
 			glEnd();
