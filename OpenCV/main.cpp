@@ -6,6 +6,8 @@
 #include "camera.h"
 #include "master.h"
 #include "phys\Geometry.h"
+#include "glm\glm\glm.hpp"
+#include "glm\glm\gtc\matrix_transform.hpp"
 
 
 //GL_DEPTH_BITS = 24 bit per pixel
@@ -270,17 +272,19 @@ namespace RestoredScene
 			double cx = f->camOffset[0];
 			double cy = f->camOffset[1];
 			double cz = f->camOffset[2];
-			glTranslated(cx, cy, cz); 
-	//		glRotated(-f->hAngle, 0,1,0);
-			double y[3][3] = {
-			{ cos(f->hAngle*D2R), 0, sin(f->hAngle*D2R)},
-			{ 0, 1, 0 },
-			{ -sin(f->hAngle*D2R), 0, cos(f->hAngle*D2R)} 
-			};
-			
-			Matrix RotateMatrix = Matrix(y);
-			RotateMatrix = RotateMatrix.Invert();
+			//glTranslated(cx, cy, cz); 
+		//	glRotated(-f->hAngle, 0,1,0);
+
 				
+			/*glm::mat4 Projection = glm::perspective(60.0f, 320.0f/240.0f, 1.0f, 100.0f);
+			glm::mat4 ViewTranslate = glm::translate(glm::mat4(1.0f), glm::vec3((float)cx, (float)cy, (float)cz));
+			glm::mat4 ViewRotateX = glm::rotate(ViewTranslate, (float)f->hAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+			glm::mat4 MVP = Projection * ViewRotateX;*/
+		  //glUniformMatrix4fv(LocationMVP, 1, GL_FALSE, glm::value_ptr(MVP));
+
+
+	
+
 			glBegin(GL_POINTS);
 			for(int y = 0; y < W_HEIGHT; y++)
 			{
@@ -294,9 +298,13 @@ namespace RestoredScene
 					double x_real = _x * zz;
 					double y_real = _y * zz;
 
-					Vector xyz = Vector(x_real, y_real, z_real);
-					xyz = RotateMatrix*xyz;
-					glVertex3d(xyz.GetX(), xyz.GetY(), xyz.GetX());
+					glm::vec4 Position = glm::vec4(glm::vec3(0.0f), 1.0f);
+				    glm::mat4 Model = glm::translate(glm::mat4(1.0f), glm::vec3(x_real, y_real, z_real));
+				    glm::mat4 Rotate = glm::rotate(Model, (float)-f->hAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+					glm::vec4 Transformed = Rotate * Position;
+
+					glVertex3d(Transformed.data[0], Transformed.data[1], Transformed.data[2]);
+				 	/*glVertex3d(x_real, y_real, z_real);*/
 				}
 			}
 			glEnd();
