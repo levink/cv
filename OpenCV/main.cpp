@@ -6,8 +6,9 @@
 #include "camera.h"
 #include "master.h"
 #include "phys\Geometry.h"
-#include "glm\glm\glm.hpp"
-#include "glm\glm\gtc\matrix_transform.hpp"
+#include "glm\glm.hpp"
+#include "glm\gtc\matrix_transform.hpp"
+#include "glm\gtx\rotate_vector.hpp"
 
 
 //GL_DEPTH_BITS = 24 bit per pixel
@@ -263,7 +264,7 @@ namespace RestoredScene
 		double _z = 1 / (double) Z_NEAR;
 
 		glColor3d(1, 1, 1);
-		glPointSize(2);
+		glPointSize(1);
 
 		for(int fr=0; fr < master->fCount; fr++)
 		{
@@ -272,18 +273,9 @@ namespace RestoredScene
 			double cx = f->camOffset[0];
 			double cy = f->camOffset[1];
 			double cz = f->camOffset[2];
-			//glTranslated(cx, cy, cz); 
-		//	glRotated(-f->hAngle, 0,1,0);
 
-				
-			/*glm::mat4 Projection = glm::perspective(60.0f, 320.0f/240.0f, 1.0f, 100.0f);
-			glm::mat4 ViewTranslate = glm::translate(glm::mat4(1.0f), glm::vec3((float)cx, (float)cy, (float)cz));
-			glm::mat4 ViewRotateX = glm::rotate(ViewTranslate, (float)f->hAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-			glm::mat4 MVP = Projection * ViewRotateX;*/
-		  //glUniformMatrix4fv(LocationMVP, 1, GL_FALSE, glm::value_ptr(MVP));
-
-
-	
+	     	glm::vec4 Position;
+	     	glm::vec4 Transformed;
 
 			glBegin(GL_POINTS);
 			for(int y = 0; y < W_HEIGHT; y++)
@@ -296,15 +288,13 @@ namespace RestoredScene
 					double zz = abs(z_real * _z);
 					double _x = left - 2 * left * _w * x; //[left; -left]
 					double x_real = _x * zz;
-					double y_real = _y * zz;
-
-					glm::vec4 Position = glm::vec4(glm::vec3(0.0f), 1.0f);
-				    glm::mat4 Model = glm::translate(glm::mat4(1.0f), glm::vec3(x_real, y_real, z_real));
-				    glm::mat4 Rotate = glm::rotate(Model, (float)-f->hAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-					glm::vec4 Transformed = Rotate * Position;
-
+					double y_real = _y * zz; 
+					 
+					Position = glm::vec4(x_real, y_real, z_real, 1.0f);
+					Transformed = glm::rotateY(Position, (float)(-f->hAngle*D2R));
+					Transformed = glm::vec4(Transformed.data[0]+cx, Transformed.data[1]+cy, Transformed.data[2]+cz, 1.0f);
 					glVertex3d(Transformed.data[0], Transformed.data[1], Transformed.data[2]);
-				 	/*glVertex3d(x_real, y_real, z_real);*/
+				 	/*glVertex3d(x_real, y_real, z_real);*/ 
 				}
 			}
 			glEnd();
