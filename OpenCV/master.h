@@ -1,113 +1,120 @@
 #include <vector>
 #include "glut.h"
 #include "camera.h"
+#include "glm\glm.hpp"
+#include "glm\gtc\matrix_transform.hpp"
+#include "glm\gtx\rotate_vector.hpp"
 
 #ifndef __MASTER_H
 #define __MASTER_H
 
-struct Frame
-{
-	float *depth;
-	double camOffset[3], hAngle, vAngle;
-};
+const double TAN_30 = 0.5773502692;
 
-struct CloudFrame
+struct Pix
 {
-	float depth;
-	double camOffset[3], hAngle, vAngle;
-	int w,h;
+	float x,y,z;
 };
 
 
 class Master
 {
-	bool FirstFrame;
-	int _length;
-	double _zNear;
-	double _zFar;
-	std::vector<CloudFrame> cloud;
-
-	void RestoreDepthFromBuffer(float* buf, int length)
+private:
+	int FramesCount;
+	int W_WIDTH, W_HEIGHT;
+	double Z_NEAR, Z_FAR;
+	std::vector<Pix>cloud;
+	void RestoreDepthFromBuffer(float* buf, int length, float _zFar, float _zNear)
 	{
-		// http://steps3d.narod.ru/tutorials/depth-to-eyez-tutorial.html
 		for(int i=0; i < length; i++)
 		{
 			buf[i] = (_zFar * _zNear) / (buf[i] * (_zFar - _zNear) - _zFar);
 		}	
 	}
-public:
-	int fCount;
-	Frame *f;
-	Master(int maxFrames, double zNear, double zFar)
+	void SetProjectionParams(double *top, double *left, double *aspect = NULL)
 	{
-		_length = maxFrames;
-		f = new Frame[maxFrames];
-		fCount = 0;
-		_zNear = zNear;
-		_zFar = zFar;
-		FirstFrame = true;
+		double tmp_a = 0;
+		if (!aspect) aspect = &tmp_a;
+		*aspect = ((double)W_WIDTH) / W_HEIGHT;
+		if (top) * top = Z_NEAR * TAN_30;
+		if (top && left) *left = -(*top) * (*aspect);
+	}
+public:
+	Master(int w, int h, float zNear, int zFar)
+	{
+		W_WIDTH = w;
+		W_HEIGHT = h;
+		Z_NEAR = zNear;
+		Z_FAR = zFar;
+		FramesCount = 0;
 	}
 	~Master()
 	{
-		for(int i = 0; i < fCount; i++)
-		{
-			delete[] f[i].depth;
-		}
-		delete[] f;
+
 	}
-	
-	void CreateFrame(GLint startX, GLint startY, GLsizei w, GLsizei h, Camera *c);
-	const int Capacity()
+	void AddFrame(int startX, int startY, int w, int h, float _zFar, float _zNear, Camera *c)
 	{
-		return _length;
+		Pix mas;
+		float * depth = new float[w*h];
+		
+		double _h = 1/(double)W_HEIGHT, _w = 1/(double)W_WIDTH, _z = 1/(double)Z_NEAR, top, left;
+
+		SetProjectionParams(&top, &left);
+
+		glReadPixels(startX, startY, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
+		RestoreDepthFromBuffer(depth, w * h, _zFar, _zNear);
+	
+		double cx = c->X();
+		double cy = c->Y();
+		double cz = c->Z();
+
+	     glm::vec4 Position;
+	     glm::vec4 Transformed;
+
+		int n = 0;
+		for(int y = 0; y < W_HEIGHT; y++)
+		{
+			double _y = -top + 2 * top * _h * y; //[-top; top]
+			for(int x = 0; x < W_WIDTH; x++)
+			{
+				double z_real = depth[W_WIDTH * y + x];
+				if (z_real == Z_FAR) continue;
+				double zz = abs(z_real * _z);
+				double _x = left - 2 * left * _w * x; //[left; -left]
+				double x_real = _x * zz;
+				double y_real = _y * zz; 
+				 
+				Position = glm::vec4(x_real, y_real, z_real, 1.0f);
+				Transformed = glm::rotateY(Position, (float)(-c->GetAngleY()*D2R));
+				Transformed = glm::vec4(Transformed.data[0]+cx, Transformed.data[1]+cy, Transformed.data[2]+cz, 1.0f);
+				mas.x = Transformed.data[0];
+				mas.y = Transformed.data[1];
+				mas.z = Transformed.data[2];
+				cloud.push_back(mas);
+				n++;
+			}
+		}
+		FramesCount++;
+
+	}
+	void DrawFrames()
+	{
+		glColor3d(1, 1, 1);
+		glPointSize(1);
+		glPushMatrix();
+		glBegin(GL_POINTS);
+		for(int i = 0; i<(int)cloud.size(); i++)
+		{
+			glVertex3d(cloud[i].x, cloud[i].y, cloud[i].z);
+		}
+		glEnd();
+		glPopMatrix();
+	}
+	int GetFramesCount()
+	{
+		return FramesCount;
 	}
 };
 
-void Master::CreateFrame(GLint startX, GLint startY, GLsizei w, GLsizei h, Camera *c)
-{
-	if (fCount == _length) return;
-		
-	Frame* fr = &f[fCount];
-		
-	// 1. Reading to the p->depth at once!
-	// 2. There are static frame size here
-	fr->depth = new float[w * h];
-	glReadPixels(startX, startY, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, fr->depth);
-	RestoreDepthFromBuffer(fr->depth, w * h);
-	
-	fr->camOffset[0] = c->X();
-	fr->camOffset[1] = c->Y();
-	fr->camOffset[2] = c->Z();
-	fr->hAngle = c->GetAngleY();
-
-	
-	CloudFrame a;
-	if(FirstFrame) 
-	for(int w = 0; w<640; w++) 
-	{
-		for(int h = 0; h<480; h++)
-		{
-			a.depth = abs(fr->depth[640 * h + w]);
-			a.w = w;
-			a.h = h;
-			a.camOffset[0] = c->X();
-			a.camOffset[1] = c->Y();
-			a.camOffset[2] = c->Z();
-			a.hAngle = c->GetAngleY();
-			a.vAngle = 0;
-		}
-		cloud.push_back(a);
-	}
-	else
-	{
-
-	}
-
-
-
-
-	fCount++;
-}
 
 
 #endif

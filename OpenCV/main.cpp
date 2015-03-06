@@ -5,17 +5,12 @@
 #include "glut.h"    
 #include "camera.h"
 #include "master.h"
-#include "phys\Geometry.h"
-#include "glm\glm.hpp"
-#include "glm\gtc\matrix_transform.hpp"
-#include "glm\gtx\rotate_vector.hpp"
 
 
 //GL_DEPTH_BITS = 24 bit per pixel
 const double Z_NEAR = 1;
 const double Z_FAR = 100;
 const double VIEW_ANGLE = 60; 
-const double TAN_30 = 0.5773502692; // (!) a half VIEW_ANGLE
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
 /* W_HEIGHT - OpenGL&CV scene(!) vertical size */
@@ -227,8 +222,6 @@ namespace SourceScene {
 
 namespace RestoredScene
 {	
-	void DrawFrames();
-	
 	void reshape(int _w, int _h)
 	{
 		glMatrixMode(GL_PROJECTION);
@@ -251,56 +244,9 @@ namespace RestoredScene
 		glRotated(cam2.GetAngleY(), 0, 1, 0);
 		glTranslated(-cam2.X(), -cam2.Y(), -cam2.Z());
 
-		DrawFrames();
+		master->DrawFrames();
 
 		glPopMatrix();
-	}
-	void DrawFrames()
-	{
-		double top, left;
-		SetProjectionParams(&top, &left);
-		double _h = 1 / (double) W_HEIGHT;
-		double _w = 1 / (double) W_WIDTH;
-		double _z = 1 / (double) Z_NEAR;
-
-		glColor3d(1, 1, 1);
-		glPointSize(1);
-
-		for(int fr=0; fr < master->fCount; fr++)
-		{
-			Frame *f = &master->f[fr];
-			glPushMatrix();
-			double cx = f->camOffset[0];
-			double cy = f->camOffset[1];
-			double cz = f->camOffset[2];
-
-	     	glm::vec4 Position;
-	     	glm::vec4 Transformed;
-
-			glBegin(GL_POINTS);
-			for(int y = 0; y < W_HEIGHT; y++)
-			{
-				double _y = -top + 2 * top * _h * y; //[-top; top]
-				for(int x = 0; x < W_WIDTH; x++)
-				{
-					double z_real = f -> depth[W_WIDTH * y + x];
-					if (z_real == Z_FAR) continue;
-					double zz = abs(z_real * _z);
-					double _x = left - 2 * left * _w * x; //[left; -left]
-					double x_real = _x * zz;
-					double y_real = _y * zz; 
-					 
-					Position = glm::vec4(x_real, y_real, z_real, 1.0f);
-					Transformed = glm::rotateY(Position, (float)(-f->hAngle*D2R));
-					Transformed = glm::vec4(Transformed.data[0]+cx, Transformed.data[1]+cy, Transformed.data[2]+cz, 1.0f);
-					glVertex3d(Transformed.data[0], Transformed.data[1], Transformed.data[2]);
-				 	/*glVertex3d(x_real, y_real, z_real);*/ 
-				}
-			}
-			glEnd();
-			glPopMatrix();
-		}
-		
 	}
 };	
 
@@ -353,7 +299,7 @@ void RenderFPS(int value)
 	glRasterPos3f (W_WIDTH+10, 10,0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
-	sprintf(buf,"Total frames: %d / %d", master->fCount, master->Capacity());
+	sprintf(buf,"Created frames: %d", master->GetFramesCount());
 	glRasterPos3f (2 * W_WIDTH - 150, 10, 0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
@@ -396,6 +342,7 @@ void display(void){
 		fps = frameCount;
 		frameCount = 0; 
 		prevTime = curTime;
+
 	} 
 	else frameCount++;
 		
@@ -404,7 +351,7 @@ void display(void){
 	
 	if (createFrame)
 	{
-		master->CreateFrame(0, 0, W_WIDTH, W_HEIGHT, &cam1);
+		master->AddFrame(0, 0, W_WIDTH, W_HEIGHT, Z_FAR, Z_NEAR, &cam1);
 		createFrame = false;
 	}
 	
@@ -490,7 +437,7 @@ int main(int argc, char **argv)
 	SetConsole();
 	
 	//create data
-	master = new Master(10, Z_NEAR, Z_FAR);
+	master = new Master(W_WIDTH, W_HEIGHT, Z_NEAR, Z_FAR);
 
 	//init OpenGL
 	glutInit(&argc, argv);
