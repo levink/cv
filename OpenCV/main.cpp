@@ -238,7 +238,7 @@ namespace RestoredScene
 	void display(void)
 	{
 		glViewport(W_WIDTH, 0, W_WIDTH, W_HEIGHT);
-		
+		glEnable(GL_DEPTH_TEST);
 		glPushMatrix();
 		glRotated(cam2.GetAngleZ(), 1, 0, 0);
 		glRotated(cam2.GetAngleY(), 0, 1, 0);
@@ -299,8 +299,8 @@ void RenderFPS(int value)
 	glRasterPos3f (W_WIDTH+10, 10,0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
-	sprintf(buf,"Created frames: %d", master->GetFramesCount());
-	glRasterPos3f (2 * W_WIDTH - 150, 10, 0);
+	sprintf(buf,"Created frames: %d, used: %d mb", master->GetFramesCount(), (int)master->GetUsedMemoryMB());
+	glRasterPos3f (2 * W_WIDTH - 260, 10, 0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
 
@@ -410,6 +410,14 @@ void keybord(unsigned char key, int x, int y){
 	{
 		createFrame = true;
 	}
+	if (key == 61)
+	{
+		master->AddPointSize(1);
+	}
+	if (key == 45)
+	{
+		master->AddPointSize(-1);
+	}
 }
 void click(int button, int state, int x, int y){
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
@@ -435,7 +443,7 @@ int main(int argc, char **argv)
 {
 	setlocale(LC_ALL, "RUS");
 	SetConsole();
-	
+	cout << "Используйте мышь для обзора, клавишу X(Ч) для построения кадра,\nWASD(ЦФЫВ) для передвижения, +- для изменения размера точек." << endl;
 	//create data
 	master = new Master(W_WIDTH, W_HEIGHT, Z_NEAR, Z_FAR);
 
@@ -444,7 +452,7 @@ int main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(2 * W_WIDTH, W_HEIGHT);
 
-	glutInitWindowPosition(0, 00);
+	glutInitWindowPosition(0, 0);
 	glutCreateWindow("Восстановление трёхмерной сцены");
 	glutIdleFunc(idle);
 	glutReshapeFunc(reshape);
