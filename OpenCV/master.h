@@ -37,10 +37,9 @@ class Master
 {
 private:
 	int FramesCount, W_WIDTH, W_HEIGHT, pointSize;
+	float memory;
 	double Z_NEAR, Z_FAR;
 	Cloud stor[1000];
-
-
 
 	void RestoreDepthFromBuffer(float* buf, int length, float _zFar, float _zNear)
 	{
@@ -66,6 +65,7 @@ public:
 		Z_FAR = zFar;
 		FramesCount = 0;
 		pointSize = 2;
+		memory = 0;
 		int i = 0;
 		for(int z = -50; z<=40; z+=10)
 		{
@@ -126,11 +126,12 @@ public:
 				Transformed = glm::rotateY(Position, (float)(-c->GetAngleY()*D2R));
 				Transformed = glm::vec4(Transformed.data[0]+cx, Transformed.data[1]+cy, Transformed.data[2]+cz, 1.0f);
 				float X = Transformed.data[0], Y = Transformed.data[1], Z = Transformed.data[2];
+				int f = 0;
 				for(int i = 0; i<1000; i++)
 				{
 					int a = stor[i].el.size();
 
-					if( (((stor[i].x1<=X) && (stor[i].x2>=X)) && ((stor[i].y1<=Y) && (stor[i].y2>=Y)) && ((stor[i].z1<=Z) && (stor[i].z2>=Z))) )
+					if ((((stor[i].x1 <= (int)X) && (stor[i].x2 >= (int)X)) && ((stor[i].y1 <= (int)Y) && (stor[i].y2 >= (int)Y)) && ((stor[i].z1 <= (int)Z) && (stor[i].z2 >= (int)Z))))
 					{
 						bool pl = true;
 						for(int ii = 0; ii<a; ii++)
@@ -147,51 +148,14 @@ public:
 							mas.x = X; mas.y = Y; mas.z = Z;
 							mas.r = color[n*3]; mas.g = color[n*3+1]; mas.b = color[n*3+2];
 							stor[i].el.push_back(mas);
+							f++;
 						}
 					}
+				//	memory += (float)((sizeof(Pix)*f / 1048576));
 				}
-
-
-
-				//mas[n].x = Transformed.data[0];
-				//mas[n].y = Transformed.data[1];
-				//mas[n].z = Transformed.data[2];
-				//mas[n].r = color[n*3];
-				//mas[n].g = color[n*3+1];
-				//mas[n].b = color[n*3+2];
-				//cloud.push_back(mas[n]);
 				n++;
 			}
 		}
-
-		//float x1=0,y1=0,z1=0,x2,y2,z2; bool pl = true; int ii = 0;
-		//if(!cloud.empty())
-		//{
-		//	for(int i = 0; i<w*h; i++)
-		//	{
-		//		pl = true; ii = 0;
-		//		for(ii = 0; ii<count; ii++)
-		//		{
-		//			x1 = cloud[ii].x; y1 = cloud[ii].y; z1 = cloud[ii].z;
-		//			x2 = mas[i].x; y2 = mas[i].y; z2 = mas[i].z;
-		//			if(sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1)+(z2-z1)*(z2-z1))<1) 
-		//			{
-		//				pl = false;
-		//				break;
-		//			}
-		//		}
-		//		if(pl) cloud.push_back(mas[ii]);
-		//	}
-		//	count = cloud.size();
-		//}
-		//else
-		//{
-		//	for(int i = 0; i<w*h; i++)
-		//	{
-		//		cloud.push_back(mas[i]);
-		//	}
-		//	count = cloud.size();
-		//}
 
 		FramesCount++;
 	}
@@ -214,7 +178,7 @@ public:
 	
 	float GetUsedMemoryMB()
 	{
-		return 0/*(float)(sizeof(cloud)*(int)cloud.size())/1048576*/;
+		return memory;
 	}
 
 	int GetFramesCount()

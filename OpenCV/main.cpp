@@ -122,13 +122,17 @@ namespace SourceScene {
 	}
 	
 	void RenderFigure(int num){
-		if (num == 1) glutSolidCone(4,4,10,10);
+		if (num == 1)
+		{
+			glRotated(-90, 1, 0, 0);
+			glutSolidCone(4, 4, 10, 10);
+		}
 		else if (num == 2) glutSolidTorus(1,2,50,50);
-		else if (num == 3) glutWireSphere(3,100,100);
+		else if (num == 3) glutWireSphere(3,30,30);
 		else if (num == 4) glutSolidTeapot(3);
 		else if (num == 5) glutSolidDodecahedron();
 		else if (num == 6) glutWireCube(3);
-		else if (num == 7) glutWireTeapot(3);
+		else if (num == 7) glutWireTeapot(4);
 	};
 	void DrawSolidCube(double x, double y, double z){
 		glPushMatrix();
@@ -140,7 +144,7 @@ namespace SourceScene {
 	{
 		glPushMatrix();
 		glTranslated(x,y,z);
-		glRotated(a, 1, 0, 0);
+		glRotated(90, 0, 1, 0);
 		RenderFigure(num);
 		glPopMatrix();
 	}
@@ -164,6 +168,39 @@ namespace SourceScene {
 		DrawSolidCube(95,2,65);
 		DrawSolidCube(95,2,80);
 		DrawSolidCube(95,2,95);
+		glPushMatrix();
+		glTranslated(4, 13, 25);
+		glRotated(-90, 0, 1, 0);
+		glutSolidTorus(3, 6, 100, 100);
+		glPopMatrix();
+
+		glPushMatrix();
+		glTranslated(4, 13, 75);
+		glRotated(-90, 0, 1, 0);
+		glutSolidTorus(3, 6, 100, 100);
+		glPopMatrix();
+
+		glPushMatrix();
+		glTranslated(1, 13, 50);
+		glRotated(-90, 0, 0, 1);
+		glRotated(-90, 1, 0, 0);
+		glutSolidCone(10, 10, 50, 50);
+		glPopMatrix();
+
+		glPushMatrix();
+		glTranslated(2, 13, 10);
+		glScaled(1, 15, 1);
+		glutSolidCube(3);
+		glPopMatrix();
+
+		glPushMatrix();
+		glTranslated(2, 13, 90);
+		glScaled(1, 15, 1);
+		glutSolidCube(3);
+		glPopMatrix();
+
+
+
 	}
 	void DrawQuad(GLfloat vert[8][3], int* ind, GLfloat *n){
 		glNormal3fv(n);
@@ -299,8 +336,8 @@ void RenderFPS(int value)
 	glRasterPos3f (W_WIDTH+10, 10,0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
-	sprintf(buf,"Created frames: %d, used: %d mb", master->GetFramesCount(), (int)master->GetUsedMemoryMB());
-	glRasterPos3f (2 * W_WIDTH - 260, 10, 0);
+	sprintf(buf,"Created frames: %d", master->GetFramesCount());
+	glRasterPos3f (2 * W_WIDTH - 150, 10, 0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
 
