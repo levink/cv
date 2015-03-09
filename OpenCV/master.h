@@ -17,12 +17,31 @@ struct Pix
 };
 
 
+class Cloud
+{
+private:
+public:
+	int x1, y1, z1, x2, y2, z2;
+	std::vector<Pix>el;
+	Cloud()
+	{
+
+	}
+
+};
+
+
+
+
 class Master
 {
 private:
 	int FramesCount, W_WIDTH, W_HEIGHT, pointSize;
 	double Z_NEAR, Z_FAR;
-	std::vector<Pix>cloud;
+	Cloud stor[1000];
+
+
+
 	void RestoreDepthFromBuffer(float* buf, int length, float _zFar, float _zNear)
 	{
 		for(int i=0; i < length; i++)
@@ -47,6 +66,23 @@ public:
 		Z_FAR = zFar;
 		FramesCount = 0;
 		pointSize = 2;
+		int i = 0;
+		for(int z = -50; z<=40; z+=10)
+		{
+			for(int y = -50; y<=40; y+=10)
+			{
+				for(int x = -50; x<=40; x+=10)
+				{
+					stor[i].x1 = x;
+					stor[i].y1 = y;
+					stor[i].z1 = z;
+					stor[i].x2 = x+10;
+					stor[i].y2 = y+10;
+					stor[i].z2 = z+10;
+					i++;
+				}
+			}
+		}
 	}
 	~Master()
 	{
@@ -54,7 +90,7 @@ public:
 	}
 	void AddFrame(int startX, int startY, int w, int h, float _zFar, float _zNear, Camera *c)
 	{
-		Pix* mas = new Pix[w*h];
+		Pix mas;
 		float * depth = new float[w*h];
 		char * color = new char[w*h*3];
 		
@@ -74,7 +110,6 @@ public:
 	     glm::vec4 Transformed;
 
 		int n = 0;
-		int count = cloud.size();
 		for(int y = 0; y < W_HEIGHT; y++)
 		{
 			double _y = -top + 2 * top * _h * y; //[-top; top]
@@ -90,13 +125,41 @@ public:
 				Position = glm::vec4(x_real, y_real, z_real, 1.0f);
 				Transformed = glm::rotateY(Position, (float)(-c->GetAngleY()*D2R));
 				Transformed = glm::vec4(Transformed.data[0]+cx, Transformed.data[1]+cy, Transformed.data[2]+cz, 1.0f);
-				mas[n].x = Transformed.data[0];
-				mas[n].y = Transformed.data[1];
-				mas[n].z = Transformed.data[2];
-				mas[n].r = color[n*3];
-				mas[n].g = color[n*3+1];
-				mas[n].b = color[n*3+2];
-				cloud.push_back(mas[n]);
+				float X = Transformed.data[0], Y = Transformed.data[1], Z = Transformed.data[2];
+				for(int i = 0; i<1000; i++)
+				{
+					int a = stor[i].el.size();
+
+					if( (((stor[i].x1<=X) && (stor[i].x2>=X)) && ((stor[i].y1<=Y) && (stor[i].y2>=Y)) && ((stor[i].z1<=Z) && (stor[i].z2>=Z))) )
+					{
+						bool pl = true;
+						for(int ii = 0; ii<a; ii++)
+						{
+							if((float)(((stor[i].el[ii].x-X)*(stor[i].el[ii].x-X)))+(float)(((stor[i].el[ii].y-Y)*(stor[i].el[ii].y-Y)))+(float)(((stor[i].el[ii].z-Z)*(stor[i].el[ii].z-Z)))    <=(float)(0.1))
+							{
+								pl = false;
+								break;
+							}
+
+						}
+						if(pl)
+						{
+							mas.x = X; mas.y = Y; mas.z = Z;
+							mas.r = color[n*3]; mas.g = color[n*3+1]; mas.b = color[n*3+2];
+							stor[i].el.push_back(mas);
+						}
+					}
+				}
+
+
+
+				//mas[n].x = Transformed.data[0];
+				//mas[n].y = Transformed.data[1];
+				//mas[n].z = Transformed.data[2];
+				//mas[n].r = color[n*3];
+				//mas[n].g = color[n*3+1];
+				//mas[n].b = color[n*3+2];
+				//cloud.push_back(mas[n]);
 				n++;
 			}
 		}
@@ -137,10 +200,13 @@ public:
 		glPointSize(pointSize);
 		glPushMatrix();
 		glBegin(GL_POINTS);
-		for(int i = 0; i<(int)cloud.size(); i++)
+		for(int i = 0; i<1000; i++)
 		{
-			glColor3b(cloud[i].r, cloud[i].g, cloud[i].b); 
-			glVertex3d(cloud[i].x, cloud[i].y, cloud[i].z);
+			for(int ii = 0; ii<stor[i].el.size(); ii++)
+			{
+				glColor3b(stor[i].el[ii].r, stor[i].el[ii].g, stor[i].el[ii].b); 
+				glVertex3d(stor[i].el[ii].x, stor[i].el[ii].y, stor[i].el[ii].z);
+			}
 		}
 		glEnd();
 		glPopMatrix();
@@ -148,7 +214,7 @@ public:
 	
 	float GetUsedMemoryMB()
 	{
-		return (float)(sizeof(cloud)*(int)cloud.size())/1048576;
+		return 0/*(float)(sizeof(cloud)*(int)cloud.size())/1048576*/;
 	}
 
 	int GetFramesCount()
