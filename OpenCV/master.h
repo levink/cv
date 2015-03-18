@@ -14,6 +14,15 @@ const double TAN_30 = 0.5773502692;
 struct Pix
 {
 	float x,y,z,r,g,b;
+	Pix operator =(Pix &a)
+	{
+		this->x = a.x;
+		this->y = a.y;
+		this->z = a.z;
+		this->r = a.r;
+		this->g = a.g;
+		this->b = a.b;
+	}
 };
 
 
@@ -31,6 +40,13 @@ public:
 };
 
 
+bool operator ==(Pix &a, Pix &b)
+{
+	if ((a.x == b.x) && (a.y == b.y) && (a.z == b.z))
+		return true;
+	else
+		return false;
+}
 
 
 class Master
@@ -40,6 +56,7 @@ private:
 	float memory;
 	double Z_NEAR, Z_FAR;
 	Cloud stor[1000];
+
 
 	void RestoreDepthFromBuffer(float* buf, int length, float _zFar, float _zNear)
 	{
@@ -124,8 +141,8 @@ public:
 				 
 				Position = glm::vec4(x_real, y_real, z_real, 1.0f);
 				Transformed = glm::rotateY(Position, (float)(-c->GetAngleY()*D2R));
-				Transformed = glm::vec4(Transformed.data[0]+cx, Transformed.data[1]+cy, Transformed.data[2]+cz, 1.0f);
-				float X = Transformed.data[0], Y = Transformed.data[1], Z = Transformed.data[2];
+				Transformed = glm::vec4(Transformed[0]+cx, Transformed[1]+cy, Transformed[2]+cz, 1.0f);
+				float X = Transformed[0] , Y = Transformed[1], Z = Transformed[2];
 				int f = 0;
 				for(int i = 0; i<1000; i++)
 				{
@@ -166,7 +183,7 @@ public:
 		glBegin(GL_POINTS);
 		for(int i = 0; i<1000; i++)
 		{
-			for(int ii = 0; ii<stor[i].el.size(); ii++)
+			for(int ii = 0; ii<(int)stor[i].el.size(); ii++)
 			{
 				glColor3b(stor[i].el[ii].r, stor[i].el[ii].g, stor[i].el[ii].b); 
 				glVertex3d(stor[i].el[ii].x, stor[i].el[ii].y, stor[i].el[ii].z);
@@ -175,12 +192,10 @@ public:
 		glEnd();
 		glPopMatrix();
 	}
-	
 	float GetUsedMemoryMB()
 	{
 		return memory;
 	}
-
 	int GetFramesCount()
 	{
 		return FramesCount;
