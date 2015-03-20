@@ -33,8 +33,8 @@ const double VIEW_ANGLE = 60;
 
 #pragma endregion
 
-Camera cam1 = Camera(0, 10, 0, 0, 2);
-Camera cam2 = Camera(0, 10, 0, 0, 1);
+Camera cam1 = Camera(0, 10, 0, 2);
+Camera cam2 = Camera(0, 10, 0, 1);
 int activeScene = 0;
 
 long prevTime = GetTickCount();
@@ -468,7 +468,7 @@ void motion(int x, int y)
 	int dx = mx - x;
 	int dy = my - y;
 	if(activeScene == 0)
-	cam1.Rotate(-dx,0/* -dy*/);
+	cam1.Rotate(-dx, -dy);
 	if(activeScene == 1)
 	cam2.Rotate(-dx, -dy);
 

@@ -123,7 +123,6 @@ public:
 		double cy = c->Y();
 		double cz = c->Z();
 
-	     glm::vec4 Position;
 	     glm::vec4 Transformed;
 
 		int n = 0;
@@ -139,9 +138,11 @@ public:
 				double x_real = _x * zz;
 				double y_real = _y * zz; 
 				 
-				Position = glm::vec4(x_real, y_real, z_real, 1.0f);
-				Transformed = glm::rotateY(Position, (float)(-c->GetAngleY()*D2R));
+				Transformed = glm::vec4(x_real, y_real, z_real, 1.0f);
+				Transformed = glm::rotateX(Transformed, (float)(-c->GetAngleZ()*D2R));
+				Transformed = glm::rotateY(Transformed, (float)(-c->GetAngleY()*D2R));
 				Transformed = glm::vec4(Transformed[0]+cx, Transformed[1]+cy, Transformed[2]+cz, 1.0f);
+
 				float X = Transformed[0] , Y = Transformed[1], Z = Transformed[2];
 				int f = 0;
 				for(int i = 0; i<1000; i++)

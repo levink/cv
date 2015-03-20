@@ -21,7 +21,7 @@ class Camera
 {
 private:
 	double camPos[3];
-	double aZ, a;
+	double aZ, aY;
 	void Move(double dx, double dy, double dz)
 	{
 		camPos[0] += dx;
@@ -31,7 +31,7 @@ private:
 public:
 	double v;
 	bool move[8];
-	Camera(float x , float y, float z, float angle, double velocity);	
+	Camera(float x , float y, float z, double velocity);	
 	double X(){
 		return camPos[0];
 	}
@@ -47,32 +47,32 @@ public:
 	}
 	double GetAngleY()
 	{
-		return a;
+		return aY;
 	}
 	void Rotate(float horizontal, float vertical)
 	{
 		aZ += vertical;
-		a += horizontal;
+		aY += horizontal;
 		if(aZ >= 360) aZ = aZ-360;
 		if(aZ < 0) aZ = aZ + 360;
-		if(a >= 360) a -= 360;
-		if(a < 0) a += 360;
+		if(aY >= 360) aY -= 360;
+		if(aY < 0) aY += 360;
 	}
 	void MoveForward()
 	{
-		Move(v * sin(a * D2R), 0, -v * cos(a * D2R));
+		Move(v * sin(aY * D2R), 0, -v * cos(aY * D2R));
 	}
 	void MoveBack()
 	{
-		Move(-v * sin(a * D2R), 0, v * cos(a * D2R));
+		Move(-v * sin(aY * D2R), 0, v * cos(aY * D2R));
 	}
 	void MoveRight()
 	{
-		Move(v * cos(a * D2R), 0, v * sin(a * D2R));
+		Move(v * cos(aY * D2R), 0, v * sin(aY * D2R));
 	}
 	void MoveLeft()
 	{
-		Move(-v * cos(a * D2R), 0, -v * sin(a * D2R));
+		Move(-v * cos(aY * D2R), 0, -v * sin(aY * D2R));
 	}
 	void MoveUp(float step)
 	{
@@ -85,28 +85,28 @@ public:
 
 	void MoveForward(double dist)
 	{
-		Move(dist * sin(a * D2R), 0, -dist * cos(a * D2R));
+		Move(dist * sin(aY * D2R), 0, -dist * cos(aY * D2R));
 	}
 	void MoveBack(double dist)
 	{
-		Move(-dist * sin(a * D2R), 0, dist * cos(a * D2R));
+		Move(-dist * sin(aY * D2R), 0, dist * cos(aY * D2R));
 	}
 	void MoveRight(double dist)
 	{
-		Move(dist * cos(a * D2R), 0, dist * sin(a * D2R));
+		Move(dist * cos(aY * D2R), 0, dist * sin(aY * D2R));
 	}
 	void MoveLeft(double dist)
 	{
-		Move(-dist * cos(a * D2R), 0, -dist * sin(a * D2R));
+		Move(-dist * cos(aY * D2R), 0, -dist * sin(aY * D2R));
 	}
 };
 
-Camera::Camera(float x , float y, float z, float angle, double velocity)
+Camera::Camera(float x , float y, float z, double velocity)
 {
 	camPos[0] = x; 
 	camPos[1] = y;
 	camPos[2] = z;
-	a = angle;
+	aY = 0;
 	aZ = 0;
 	v = velocity;
 	for(int i = Forward; i < RotateLeft; i++)
