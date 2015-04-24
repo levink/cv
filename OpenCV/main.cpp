@@ -38,7 +38,7 @@ Camera cam2 = Camera(0, 10, 0, 1);
 int activeScene = 0;
 
 long prevTime = GetTickCount();
-int fps = 0, frameCount = 0;
+int fps = 0, frameCount = 0, window1, window2;
 
 float arr[4] = {50.0, 10.0, 50.0, 1.0};
 float arr2[3] = {50.0, -1.0, 50.0};
@@ -50,6 +50,8 @@ int mx = 0, my = 0;
 
 Master* master = NULL;
 bool createFrame = false;
+int ShowText = 0;
+IplImage* img1; IplImage *img2;
 
 void SetProjectionParams(double *top, double *left, double *aspect = NULL){
 	double tmp_a = 0;
@@ -307,6 +309,13 @@ void DrawFrame(int sceneNumber){
 		glVertex2d( 1,  1);
 		glVertex2d( 1, -1);
 		glEnd();
+
+		glColor3d(1,1,1);
+		glPointSize(5);
+		glBegin(GL_POINTS);
+		glVertex2d(1/2, 1/2);
+		glEnd();
+
 }
 void RenderFPS(int value)
 {		
@@ -395,6 +404,24 @@ void display(void){
 	RestoredScene::reshape(W_WIDTH, W_HEIGHT);
 	RestoredScene::display();
 	
+	if(ShowText)
+	{
+		char *buf;
+		buf = new char[100];
+		if(ShowText == 1)
+		{
+			glReadPixels(0, 0, 640, 480, GL_BGR_EXT, GL_UNSIGNED_BYTE, img1->imageData);
+			sprintf(buf,"1_%d.jpg", time(NULL));
+			cvSaveImage(buf, img1);
+		}
+		if(ShowText == 2)
+		{
+			glReadPixels(0, 0, 640, 480, GL_BGR_EXT, GL_UNSIGNED_BYTE, img2->imageData);
+			sprintf(buf,"2_%d.jpg", time(NULL));
+			cvSaveImage(buf, img2);
+		}
+		ShowText = 0;
+	}
 	DrawFrame(activeScene);
 	RenderFPS(fps);
 
@@ -419,20 +446,20 @@ void keybord(unsigned char key, int x, int y){
 	}	
 	if (key == 'a' || key == 244)
 	{
-		c->MoveLeft();
+		c->MoveLeft(1);
 	}
 	if (key == 'd' || key == 226)
 	{
-		c->MoveRight();
+		c->MoveRight(1);
 	}
 	if (key == 'q' || key == 233)
 	{
-		c->Rotate(-10, 0);
+		c->Rotate(-1, 0);
 	//	cout << c->GetAngleY() << endl;
 	}
 	if (key == 'e' || key == 243)
 	{
-		c->Rotate(10, 0);
+		c->Rotate(1, 0);
 	//	cout << c->GetAngleY() << endl;
 	}
 	if (key == 'r' || key == 234)
@@ -446,6 +473,14 @@ void keybord(unsigned char key, int x, int y){
 	if (key == 'x' || key == 247)
 	{
 		createFrame = true;
+	}
+	if (key == '1')
+	{
+		ShowText = 1;
+	}
+	if (key == '2')
+	{
+		ShowText = 2;
 	}
 	if (key == 61)
 	{
@@ -483,14 +518,17 @@ int main(int argc, char **argv)
 	cout << "Используйте мышь для обзора, клавишу X(Ч) для построения кадра,\nWASD(ЦФЫВ) для передвижения, +- для изменения размера точек." << endl;
 	//create data
 	master = new Master(W_WIDTH, W_HEIGHT, Z_NEAR, Z_FAR);
-
+	CvSize size; size.height=W_HEIGHT; size.width=W_WIDTH;
+	img1 = cvCreateImage(size, IPL_DEPTH_8U, 3);
+	img2 = cvCreateImage(size, IPL_DEPTH_8U, 3);
+	img1->origin = IPL_ORIGIN_BL; img2->origin = IPL_ORIGIN_BL;
 	//init OpenGL
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(2 * W_WIDTH, W_HEIGHT);
 
 	glutInitWindowPosition(0, 0);
-	glutCreateWindow("Восстановление трёхмерной сцены");
+	window1 = glutCreateWindow("Восстановление трёхмерной сцены");
 	glutIdleFunc(idle);
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
