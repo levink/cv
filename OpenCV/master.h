@@ -9,8 +9,6 @@
 #ifndef __MASTER_H
 #define __MASTER_H
 
-const double TAN_30 = 0.5773502692;
-
 struct Pix
 {
 	float x,y,z,r,g,b;
@@ -54,7 +52,7 @@ class Master
 private:
 	int FramesCount, W_WIDTH, W_HEIGHT, pointSize;
 	float memory;
-	double Z_NEAR, Z_FAR;
+	double Z_NEAR, Z_FAR, viewAngle;
 	Cloud stor[1000];
 
 
@@ -65,21 +63,21 @@ private:
 			buf[i] = (_zFar * _zNear) / (buf[i] * (_zFar - _zNear) - _zFar);
 		}	
 	}
-	void SetProjectionParams(double *top, double *left, double *aspect = NULL)
-	{
+	void SetProjectionParams(double *top, double *left, double viewAngle, double *aspect = NULL){
 		double tmp_a = 0;
 		if (!aspect) aspect = &tmp_a;
 		*aspect = ((double)W_WIDTH) / W_HEIGHT;
-		if (top) * top = Z_NEAR * TAN_30;
+		if (top) * top = Z_NEAR * tan((viewAngle/2)*D2R);
 		if (top && left) *left = -(*top) * (*aspect);
 	}
 public:
-	Master(int w, int h, float zNear, int zFar)
+	Master(int w, int h, float zNear, int zFar, double viewAng)
 	{
 		W_WIDTH = w;
 		W_HEIGHT = h;
 		Z_NEAR = zNear;
 		Z_FAR = zFar;
+		viewAngle = viewAng;
 		FramesCount = 0;
 		pointSize = 2;
 		memory = 0;
@@ -113,7 +111,7 @@ public:
 		
 		double _h = 1/(double)W_HEIGHT, _w = 1/(double)W_WIDTH, _z = 1/(double)Z_NEAR, top, left;
 
-		SetProjectionParams(&top, &left);
+		SetProjectionParams(&top, &left, viewAngle);
 
 		glReadPixels(startX, startY, w, h, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
 		glReadPixels(startX, startY, w, h, GL_RGB, GL_BYTE, color);
@@ -154,7 +152,7 @@ public:
 						bool pl = true;
 						for(int ii = 0; ii<a; ii++)
 						{
-							if((float)(((stor[i].el[ii].x-X)*(stor[i].el[ii].x-X)))+(float)(((stor[i].el[ii].y-Y)*(stor[i].el[ii].y-Y)))+(float)(((stor[i].el[ii].z-Z)*(stor[i].el[ii].z-Z)))    <=(float)(0.1))
+							if(((float)(((stor[i].el[ii].x-X)*(stor[i].el[ii].x-X)))+(float)(((stor[i].el[ii].y-Y)*(stor[i].el[ii].y-Y)))+(float)(((stor[i].el[ii].z-Z)*(stor[i].el[ii].z-Z)))<=(float)(0.1))  )
 							{
 								pl = false;
 								break;
@@ -176,6 +174,7 @@ public:
 		}
 
 		FramesCount++;
+		std::cout << "Кадр занесён на карту (" << FramesCount << ")" << std::endl;
 	}
 	void DrawFrames()
 	{

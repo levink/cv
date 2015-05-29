@@ -6,10 +6,8 @@
 #include "camera.h"
 #include "master.h"
 
-
-//GL_DEPTH_BITS = 24 bit per pixel
-const double Z_NEAR = 1;
-const double Z_FAR = 100;
+const double Z_NEAR = 0.1;
+const double Z_FAR = 150;
 const double VIEW_ANGLE = 60; 
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
@@ -53,11 +51,11 @@ bool createFrame = false;
 int ShowText = 0;
 IplImage* img1; IplImage *img2;
 
-void SetProjectionParams(double *top, double *left, double *aspect = NULL){
+void SetProjectionParams(double *top, double *left, double viewAngle, double *aspect = NULL){
 	double tmp_a = 0;
 	if (!aspect) aspect = &tmp_a;
 	*aspect = ((double)W_WIDTH) / W_HEIGHT;
-	if (top) * top = Z_NEAR * TAN_30;
+	if (top) * top = Z_NEAR * tan((viewAngle/2)*D2R);
 	if (top && left) *left = -(*top) * (*aspect);
 }
 
@@ -80,7 +78,7 @@ namespace SourceScene {
 		glLoadIdentity();
 		
 		double top, left, aspect;
-		SetProjectionParams(&top, &left, &aspect);
+		SetProjectionParams(&top, &left, VIEW_ANGLE, &aspect);
 		glFrustum(left, -left, -top, top, Z_NEAR, Z_FAR);
 		//gluPerspective(VIEW_ANGLE, aspect, Z_NEAR, Z_FAR);
 
@@ -267,9 +265,9 @@ namespace RestoredScene
 		glLoadIdentity();
 		
 		double top, left, aspect;
-		SetProjectionParams(&top, &left, &aspect);
+		SetProjectionParams(&top, &left, VIEW_ANGLE, &aspect);
 		//glFrustum(left, -left, -top, top, Z_NEAR, Z_FAR);
-		gluPerspective(VIEW_ANGLE, aspect, 1, Z_FAR);
+		gluPerspective(VIEW_ANGLE, aspect, Z_NEAR, Z_FAR);
 		
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
@@ -311,11 +309,10 @@ void DrawFrame(int sceneNumber){
 		glEnd();
 
 		glColor3d(1,1,1);
-		glPointSize(5);
+		glPointSize(3);
 		glBegin(GL_POINTS);
 		glVertex2d(1/2, 1/2);
 		glEnd();
-
 }
 void RenderFPS(int value)
 {		
@@ -408,17 +405,23 @@ void display(void){
 	{
 		char *buf;
 		buf = new char[100];
+		CvSize size; size.height=W_HEIGHT; size.width=W_WIDTH;
+		img1 = cvCreateImage(size, IPL_DEPTH_8U, 3);
+		img2 = cvCreateImage(size, IPL_DEPTH_8U, 3);
+		img1->origin = IPL_ORIGIN_BL; img2->origin = IPL_ORIGIN_BL;
 		if(ShowText == 1)
 		{
-			glReadPixels(0, 0, 640, 480, GL_BGR_EXT, GL_UNSIGNED_BYTE, img1->imageData);
+			glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, img1->imageData);
 			sprintf(buf,"1_%d.jpg", time(NULL));
 			cvSaveImage(buf, img1);
+			cout << "Скриншот сохранён (" << buf << ")" << endl;
 		}
 		if(ShowText == 2)
 		{
-			glReadPixels(0, 0, 640, 480, GL_BGR_EXT, GL_UNSIGNED_BYTE, img2->imageData);
+			glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, img2->imageData);
 			sprintf(buf,"2_%d.jpg", time(NULL));
 			cvSaveImage(buf, img2);
+			cout << "Скриншот сохранён (" << buf << ")" << endl;
 		}
 		ShowText = 0;
 	}
@@ -515,13 +518,9 @@ int main(int argc, char **argv)
 {
 	setlocale(LC_ALL, "RUS");
 	SetConsole();
-	cout << "Используйте мышь для обзора, клавишу X(Ч) для построения кадра,\nWASD(ЦФЫВ) для передвижения, +- для изменения размера точек." << endl;
+	cout << "Мышь + ЛКМ - поворот камеры, WASD(ЦФЫВ) - передвижение камеры\nX(Ч) - построение кадра, +- - изменение размера точек\n1,2 - сделать скриншот (сохраняется в папку с программой)\n" << endl;
 	//create data
-	master = new Master(W_WIDTH, W_HEIGHT, Z_NEAR, Z_FAR);
-	CvSize size; size.height=W_HEIGHT; size.width=W_WIDTH;
-	img1 = cvCreateImage(size, IPL_DEPTH_8U, 3);
-	img2 = cvCreateImage(size, IPL_DEPTH_8U, 3);
-	img1->origin = IPL_ORIGIN_BL; img2->origin = IPL_ORIGIN_BL;
+	master = new Master(W_WIDTH, W_HEIGHT, Z_NEAR, Z_FAR, VIEW_ANGLE);
 	//init OpenGL
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
