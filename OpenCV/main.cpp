@@ -36,7 +36,6 @@ Camera cam2 = Camera(0, 10, 0, 1);
 int activeScene = 0;
 
 long prevTime = GetTickCount();
-int fps = 0, frameCount = 0, window1, window2;
 
 float arr[4] = {50.0, 10.0, 50.0, 1.0};
 float arr2[3] = {50.0, -1.0, 50.0};
@@ -44,12 +43,18 @@ float colorBlack[3] = {0.5, 0.3, 0.2};
 float colorX[3] = {1,0,1}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0}, 
 	colorA[3] = {1,1,0}, colorTeapot[3] = {0,1,0}, amb[4] = {0,1,0,0};
 
+int MODE_FREE = 0;
+int MODE_CENTER_ROTATE = 1;
+int MODE_STEREO = 2;
+
+int fps = 0, frameCount = 0, window1, window2, scrCount = 1;
+int renderMode = MODE_CENTER_ROTATE;
 int mx = 0, my = 0;
 
 Master* master = NULL;
 bool createFrame = false;
 int ShowText = 0;
-IplImage* img1; IplImage *img2;
+IplImage* img1, *img2;
 
 void SetProjectionParams(double *top, double *left, double viewAngle, double *aspect = NULL){
 	double tmp_a = 0;
@@ -90,17 +95,33 @@ namespace SourceScene {
 		glViewport(0, 0, W_WIDTH, W_HEIGHT);
 	
 		glPushMatrix();
-		glRotated(cam1.GetAngleZ(), 1, 0, 0);
-		glRotated(cam1.GetAngleY(), 0, 1, 0);
-		glTranslated(-cam1.X(), -cam1.Y(), -cam1.Z());
+
+		if(renderMode == MODE_FREE)
+		{
+			glRotated(cam1.GetAngleZ(), 1, 0, 0);
+			glRotated(cam1.GetAngleY(), 0, 1, 0);
+			glTranslated(-cam1.X(), -cam1.Y(), -cam1.Z());
+		}
+		if(renderMode == MODE_CENTER_ROTATE)
+		{
+			glTranslated(0, -10, -30);
+			glRotated(cam1.GetAngleY(), 0, 1, 0);
+		}
 	
 		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 	
-		GLfloat pos[4] = {25.0, 20.0, 25.0, 0.6};
-		GLfloat ambient[] = {0.2, 0.2, 0.2, 1.0}; 
+		GLfloat pos[4] = {10, 10,10, 0.5};
+		GLfloat ambient[] = {0.2, 0.2, 0.2, 1}; 
 		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
 		glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+
+		glPushMatrix();
+		glRotated(cam2.GetAngleY(), 0,1,0);
+		glTranslated(pos[0], pos[1], pos[2]);
+		//glutSolidSphere(1,10,10);
 		glLightfv(GL_LIGHT0, GL_POSITION, pos);
+		glPopMatrix();
+
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT0);
 		glEnable(GL_DEPTH_TEST);
@@ -113,6 +134,8 @@ namespace SourceScene {
 		DrawWalls();
 		
 		glPopMatrix();
+
+
 
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_LIGHT0);
@@ -169,17 +192,19 @@ namespace SourceScene {
 		DrawSolidCube(95,2,80);
 		DrawSolidCube(95,2,95);
 		glPushMatrix();
-		glTranslated(4, 13, 25);
+		glTranslated(15, 13, 25);
 		glRotated(-90, 0, 1, 0);
 		glutSolidTorus(3, 6, 100, 100);
 		glPopMatrix();
 
+		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorZ);
 		glPushMatrix();
-		glTranslated(4, 13, 75);
+		glTranslated(20, 13, 75);
 		glRotated(-90, 0, 1, 0);
 		glutSolidTorus(3, 6, 100, 100);
 		glPopMatrix();
 
+		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorA);
 		glPushMatrix();
 		glTranslated(1, 13, 50);
 		glRotated(-90, 0, 0, 1);
@@ -238,6 +263,13 @@ namespace SourceScene {
 			{5, 4, 6, 7}
 		};
 		
+		if(renderMode == MODE_CENTER_ROTATE)
+		{
+			glPushMatrix();
+			glTranslated(50,10,50);
+			glutSolidSphere(4,50,50);
+			glPopMatrix();
+		}
 
 		glBegin(GL_QUADS); 
 
@@ -330,7 +362,10 @@ void RenderFPS(int value)
 
 
 	glColor3d(0,1,0);
-	sprintf(buf,"FPS: %d, %dx%d", value, W_WIDTH, W_HEIGHT);
+	if(renderMode == MODE_FREE)
+	sprintf(buf,"FPS: %d, %dx%d, mode: Free", value, W_WIDTH, W_HEIGHT);
+	if(renderMode == MODE_CENTER_ROTATE)
+	sprintf(buf,"FPS: %d, %dx%d, mode: Around center", value, W_WIDTH, W_HEIGHT);
 	glRasterPos3f (10, W_HEIGHT-25, 0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
@@ -403,27 +438,19 @@ void display(void){
 	
 	if(ShowText)
 	{
-		char *buf;
-		buf = new char[100];
+		char *buf, *buff;
+		buf = new char[20];
+		buff = new char[100];
 		CvSize size; size.height=W_HEIGHT; size.width=W_WIDTH;
 		img1 = cvCreateImage(size, IPL_DEPTH_8U, 3);
-		img2 = cvCreateImage(size, IPL_DEPTH_8U, 3);
-		img1->origin = IPL_ORIGIN_BL; img2->origin = IPL_ORIGIN_BL;
-		if(ShowText == 1)
-		{
-			glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, img1->imageData);
-			sprintf(buf,"1_%d.jpg", time(NULL));
-			cvSaveImage(buf, img1);
-			cout << "Скриншот сохранён (" << buf << ")" << endl;
-		}
-		if(ShowText == 2)
-		{
-			glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, img2->imageData);
-			sprintf(buf,"2_%d.jpg", time(NULL));
-			cvSaveImage(buf, img2);
-			cout << "Скриншот сохранён (" << buf << ")" << endl;
-		}
-		ShowText = 0;
+		img1->origin = IPL_ORIGIN_BL;
+		glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, img1->imageData);
+		time_t now = time(NULL);
+		strftime(buf, 100, "%H-%M-%S.jpg", localtime(&now));
+		sprintf(buff, "(%d) %s", scrCount, buf);
+		cvSaveImage(buff, img1);
+		cout << "Скриншот сохранён (" << buff << ")" << endl;
+		ShowText = 0; scrCount++;
 	}
 	DrawFrame(activeScene);
 	RenderFPS(fps);
@@ -438,40 +465,47 @@ void idle(void)
 void keybord(unsigned char key, int x, int y){
 		
 	Camera *c = activeScene == 0 ? &cam1 : &cam2;
-
-	if (key == 'w' || key == 246)
+	if(renderMode == MODE_FREE)
 	{
-		c->MoveForward();
+		if (key == 'w' || key == 246)
+		{
+			c->MoveForward();
+		}
+		if (key == 's' || key == 251)
+		{
+			c->MoveBack();
+		}	
+		if (key == 'a' || key == 244)
+		{
+			c->MoveLeft(1);
+		}
+		if (key == 'd' || key == 226)
+		{
+			c->MoveRight(1);
+		}
+		if (key == 'q' || key == 233)
+		{
+			c->Rotate(-1, 0);
+		//	cout << c->GetAngleY() << endl;
+		}
+		if (key == 'e' || key == 243)
+		{
+			c->Rotate(1, 0);
+		//	cout << c->GetAngleY() << endl;
+		}
+		if (key == 'r' || key == 234)
+		{
+			c->MoveUp(0.7);
+		}
+		if (key == 'f' || key == 224)
+		{
+			c->MoveDown(0.7);
+		}
 	}
-	if (key == 's' || key == 251)
+	if (key == 'm' || key == 252)
 	{
-		c->MoveBack();
-	}	
-	if (key == 'a' || key == 244)
-	{
-		c->MoveLeft(1);
-	}
-	if (key == 'd' || key == 226)
-	{
-		c->MoveRight(1);
-	}
-	if (key == 'q' || key == 233)
-	{
-		c->Rotate(-1, 0);
-	//	cout << c->GetAngleY() << endl;
-	}
-	if (key == 'e' || key == 243)
-	{
-		c->Rotate(1, 0);
-	//	cout << c->GetAngleY() << endl;
-	}
-	if (key == 'r' || key == 234)
-	{
-		c->MoveUp(0.7);
-	}
-	if (key == 'f' || key == 224)
-	{
-		c->MoveDown(0.7);
+		renderMode++;
+		if(renderMode > 1) renderMode-=2;
 	}
 	if (key == 'x' || key == 247)
 	{
@@ -480,10 +514,6 @@ void keybord(unsigned char key, int x, int y){
 	if (key == '1')
 	{
 		ShowText = 1;
-	}
-	if (key == '2')
-	{
-		ShowText = 2;
 	}
 	if (key == 61)
 	{
@@ -518,7 +548,11 @@ int main(int argc, char **argv)
 {
 	setlocale(LC_ALL, "RUS");
 	SetConsole();
-	cout << "Мышь + ЛКМ - поворот камеры, WASD(ЦФЫВ) - передвижение камеры\nX(Ч) - построение кадра, +- - изменение размера точек\n1,2 - сделать скриншот (сохраняется в папку с программой)\n" << endl;
+	cout << "Мышь + ЛКМ - поворот камеры, WASD(ЦФЫВ) - передвижение камеры" << endl 
+		 << "X(Ч) - построение кадра" << endl
+		 << "M(Ь) - смена режима управления" << endl
+		 << "+- - изменение размера точек" << endl
+		 << "1 - сделать скриншот (сохраняется в папку с программой)" << endl;
 	//create data
 	master = new Master(W_WIDTH, W_HEIGHT, Z_NEAR, Z_FAR, VIEW_ANGLE);
 	//init OpenGL
