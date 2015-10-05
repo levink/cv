@@ -48,7 +48,7 @@ int MODE_CENTER_ROTATE = 1;
 int MODE_STEREO = 2;
 
 int fps = 0, frameCount = 0, window1, window2, scrCount = 1;
-int renderMode = MODE_CENTER_ROTATE;
+int renderMode = MODE_FREE;
 int mx = 0, my = 0;
 
 Master* master = NULL;
@@ -92,7 +92,7 @@ namespace SourceScene {
 	}
 	void display(void)
 	{
-		glViewport(0, 0, W_WIDTH, W_HEIGHT);
+		glViewport(0, W_HEIGHT, W_WIDTH, W_HEIGHT);
 	
 		glPushMatrix();
 
@@ -320,7 +320,7 @@ namespace RestoredScene
 };	
 
 void DrawFrame(int sceneNumber){
-		if(sceneNumber == 0) 	glViewport(0, 0, W_WIDTH, W_HEIGHT);
+		if(sceneNumber == 0) 	glViewport(0, W_HEIGHT, 2*W_WIDTH, 2*W_HEIGHT);
 		else if (sceneNumber == 1) glViewport(W_WIDTH, 0, W_WIDTH, W_HEIGHT);
 
 		glMatrixMode(GL_PROJECTION);
@@ -348,11 +348,11 @@ void DrawFrame(int sceneNumber){
 }
 void RenderFPS(int value)
 {		
-	glViewport(0, 0, 2 * W_WIDTH, W_HEIGHT);
+	glViewport(0, 0, 2 * W_WIDTH, 2 * W_HEIGHT);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, 2*W_WIDTH, 0, W_HEIGHT, 0,1);
+	glOrtho(0, 2*W_WIDTH, 0, 2*W_HEIGHT, 0,1);
 		
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -364,13 +364,12 @@ void RenderFPS(int value)
 	glColor3d(0,1,0);
 	if(renderMode == MODE_FREE)
 	sprintf(buf,"FPS: %d, %dx%d, mode: Free", value, W_WIDTH, W_HEIGHT);
-	if(renderMode == MODE_CENTER_ROTATE)
-	sprintf(buf,"FPS: %d, %dx%d, mode: Around center", value, W_WIDTH, W_HEIGHT);
-	glRasterPos3f (10, W_HEIGHT-25, 0);
+
+	glRasterPos3f (10, 2*W_HEIGHT-25, 0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
 	sprintf(buf,"X:%d, Y: %d, Z: %d", (int)cam1.X(), (int)cam1.Y(), (int)cam1.Z());
-	glRasterPos3f (10, 10, 0);
+	glRasterPos3f (10, W_HEIGHT+10, 0);
 	for(int i=0; buf[i]; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, buf[i]);
 
 	sprintf(buf,"X:%d, Y: %d, Z: %d", (int)cam2.X(), (int)cam2.Y(), (int)cam2.Z());
@@ -405,7 +404,7 @@ void SetConsole()
 
 void reshape(int w, int h){
 	W_WIDTH = w/2;
-	W_HEIGHT = h;
+	W_HEIGHT = h/2;
 	glutPostRedisplay();
 };
 void display(void){
@@ -429,7 +428,7 @@ void display(void){
 	
 	if (createFrame)
 	{
-		master->AddFrame(0, 0, W_WIDTH, W_HEIGHT, Z_FAR, Z_NEAR, &cam1);
+		master->AddFrame(0, W_HEIGHT, W_WIDTH, 2*W_HEIGHT, Z_FAR, Z_NEAR, &cam1);
 		createFrame = false;
 	}
 	
@@ -444,7 +443,7 @@ void display(void){
 		CvSize size; size.height=W_HEIGHT; size.width=W_WIDTH;
 		img1 = cvCreateImage(size, IPL_DEPTH_8U, 3);
 		img1->origin = IPL_ORIGIN_BL;
-		glReadPixels(0, 0, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, img1->imageData);
+		glReadPixels(0, W_HEIGHT, W_WIDTH, 2*W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, img1->imageData);
 		time_t now = time(NULL);
 		strftime(buf, 100, "%H-%M-%S.jpg", localtime(&now));
 		sprintf(buff, "(%d) %s", scrCount, buf);
@@ -558,7 +557,7 @@ int main(int argc, char **argv)
 	//init OpenGL
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE |  GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(2 * W_WIDTH, W_HEIGHT);
+	glutInitWindowSize(2*W_WIDTH, 2*W_HEIGHT);
 
 	glutInitWindowPosition(0, 0);
 	window1 = glutCreateWindow("Восстановление трёхмерной сцены");
