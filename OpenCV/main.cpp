@@ -52,7 +52,7 @@ int renderMode = MODE_FREE;
 int mx = 0, my = 0;
 
 Master* master = NULL;
-bool createFrame = false;
+bool createFrame = false, firstCamera = true;
 int ShowText = 0;
 IplImage* img1, *img2;
 
@@ -90,24 +90,25 @@ namespace SourceScene {
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 	}
-	void display(void)
+	void display(int cameraNum)
 	{
-		glViewport(0, W_HEIGHT, W_WIDTH, W_HEIGHT);
-	
-		glPushMatrix();
+		glLoadIdentity();
 
-		if(renderMode == MODE_FREE)
+		if(cameraNum == 1)
 		{
+			glViewport(0, W_HEIGHT, W_WIDTH, W_HEIGHT);
 			glRotated(cam1.GetAngleZ(), 1, 0, 0);
 			glRotated(cam1.GetAngleY(), 0, 1, 0);
 			glTranslated(-cam1.X(), -cam1.Y(), -cam1.Z());
 		}
-		if(renderMode == MODE_CENTER_ROTATE)
+		if (cameraNum == 2)
 		{
-			glTranslated(0, -10, -30);
+			glViewport(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT);
+			glRotated(cam1.GetAngleZ(), 1, 0, 0);
 			glRotated(cam1.GetAngleY(), 0, 1, 0);
+			glTranslated(-cam1.X()-3, -cam1.Y(), -cam1.Z());
 		}
-	
+		
 		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 	
 		GLfloat pos[4] = {10, 10,10, 0.5};
@@ -116,10 +117,10 @@ namespace SourceScene {
 		glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
 
 		glPushMatrix();
-		glRotated(cam2.GetAngleY(), 0,1,0);
-		glTranslated(pos[0], pos[1], pos[2]);
-		//glutSolidSphere(1,10,10);
-		glLightfv(GL_LIGHT0, GL_POSITION, pos);
+		//	glRotated(cam2.GetAngleY(), 0,1,0);
+			glTranslated(pos[0], pos[1], pos[2]);
+			//glutSolidSphere(1,10,10);
+			glLightfv(GL_LIGHT0, GL_POSITION, pos);
 		glPopMatrix();
 
 		glEnable(GL_LIGHTING);
@@ -127,21 +128,15 @@ namespace SourceScene {
 		glEnable(GL_DEPTH_TEST);
 
 		glPushMatrix();
-		glRotated(90,0,1,0);
-		glTranslated(-50, 0, -50);
-
-		DrawTeapots();
-		DrawWalls();
-		
+			glRotated(90,0,1,0);
+			glTranslated(-50, 0, -50);
+			DrawTeapots();
+			DrawWalls();
 		glPopMatrix();
-
-
 
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_LIGHT0);
 		glDisable(GL_LIGHTING);
-
-		glPopMatrix();
 	}
 	
 	void RenderFigure(int num){
@@ -320,8 +315,9 @@ namespace RestoredScene
 };	
 
 void DrawFrame(int sceneNumber){
-		if(sceneNumber == 0) 	glViewport(0, W_HEIGHT, 2*W_WIDTH, 2*W_HEIGHT);
-		else if (sceneNumber == 1) glViewport(W_WIDTH, 0, W_WIDTH, W_HEIGHT);
+		if (sceneNumber == 0) glViewport(0, W_HEIGHT, 2*W_WIDTH, 2*W_HEIGHT);
+		if (sceneNumber == 1) glViewport(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT);
+		if (sceneNumber == 2) glViewport(W_WIDTH, 0, W_WIDTH, W_HEIGHT);
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -338,12 +334,6 @@ void DrawFrame(int sceneNumber){
 		glVertex2d(-1,  1);
 		glVertex2d( 1,  1);
 		glVertex2d( 1, -1);
-		glEnd();
-
-		glColor3d(1,1,1);
-		glPointSize(3);
-		glBegin(GL_POINTS);
-		glVertex2d(1/2, 1/2);
 		glEnd();
 }
 void RenderFPS(int value)
@@ -424,7 +414,8 @@ void display(void){
 	else frameCount++;
 		
 	SourceScene::reshape(W_WIDTH, W_HEIGHT); 
-	SourceScene::display();
+	SourceScene::display(1);
+	SourceScene::display(2);
 	
 	if (createFrame)
 	{
@@ -432,6 +423,7 @@ void display(void){
 		createFrame = false;
 	}
 	
+
 	RestoredScene::reshape(W_WIDTH, W_HEIGHT);
 	RestoredScene::display();
 	
@@ -443,19 +435,30 @@ void display(void){
 		CvSize size; size.height=W_HEIGHT; size.width=W_WIDTH;
 		img1 = cvCreateImage(size, IPL_DEPTH_8U, 3);
 		img1->origin = IPL_ORIGIN_BL;
+
 		glReadPixels(0, W_HEIGHT, W_WIDTH, 2*W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, img1->imageData);
-		time_t now = time(NULL);
-		strftime(buf, 100, "%H-%M-%S.jpg", localtime(&now));
-		sprintf(buff, "(%d) %s", scrCount, buf);
+		sprintf(buff, "%d.bmp", scrCount);
 		cvSaveImage(buff, img1);
 		cout << "Скриншот сохранён (" << buff << ")" << endl;
+		scrCount++;
+
+		glReadPixels(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, img1->imageData);
+		sprintf(buff, "%d.bmp", scrCount);
+		cvSaveImage(buff, img1);
+		cout << "Скриншот сохранён (" << buff << ")" << endl;
+
 		ShowText = 0; scrCount++;
 	}
-	DrawFrame(activeScene);
+	if(activeScene == 1) DrawFrame(2); else
+	{
+		DrawFrame(1); DrawFrame(0);
+	}
+
 	RenderFPS(fps);
 
 	glFlush();
 	glutSwapBuffers();
+
 };
 void idle(void)
 {
@@ -525,7 +528,14 @@ void keybord(unsigned char key, int x, int y){
 }
 void click(int button, int state, int x, int y){
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
-		activeScene = x < W_WIDTH ? 0 : 1;
+		if(y<W_HEIGHT) 
+		{
+			activeScene = 0;
+		}
+		else 
+		{
+			activeScene = 1;
+		}
 	}
 	mx = x;
 	my = y;
