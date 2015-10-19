@@ -419,7 +419,8 @@ void display(void){
 	
 	if (createFrame)
 	{
-		master->AddFrame(0, W_HEIGHT, W_WIDTH, 2*W_HEIGHT, Z_FAR, Z_NEAR, &cam1);
+		//master->AddFrameGLDepth(0, W_HEIGHT, W_WIDTH, 2*W_HEIGHT, Z_FAR, Z_NEAR, &cam1);
+		master->AddFrameCameraDepth();
 		createFrame = false;
 	}
 	

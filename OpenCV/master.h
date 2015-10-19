@@ -5,6 +5,7 @@
 #include "glm\glm.hpp"
 #include "glm\gtc\matrix_transform.hpp"
 #include "glm\gtx\rotate_vector.hpp"
+#include <opencv2\legacy\legacy.hpp>
 
 #ifndef __MASTER_H
 #define __MASTER_H
@@ -103,7 +104,7 @@ public:
 	{
 
 	}
-	void AddFrame(int startX, int startY, int w, int h, float _zFar, float _zNear, Camera *c)
+	void AddFrameGLDepth(int startX, int startY, int w, int h, float _zFar, float _zNear, Camera *c)
 	{
 		Pix mas;
 		float * depth = new float[w*h];
@@ -173,8 +174,25 @@ public:
 			}
 		}
 
+
 		FramesCount++;
 		std::cout << "Кадр занесён на карту (" << FramesCount << ")" << std::endl;
+	}
+	void AddFrameCameraDepth()
+	{
+		CvSize size; size.width=W_WIDTH; size.height=W_HEIGHT;
+		IplImage * img1 = cvCreateImage(size, IPL_DEPTH_8U, 3); img1->origin = IPL_ORIGIN_BL;
+		IplImage * img2 = cvCreateImage(size, IPL_DEPTH_8U, 3); img2->origin = IPL_ORIGIN_BL;
+		IplImage * img3 = cvCreateImage(size, IPL_DEPTH_8U, 3); img3->origin = IPL_ORIGIN_BL;
+		IplImage * img4 = cvCreateImage(size, IPL_DEPTH_8U, 3); img4->origin = IPL_ORIGIN_BL;
+		glReadPixels(0, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_BYTE, img1->imageData);
+		glReadPixels(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_BYTE, img2->imageData);
+		CvStereoGCState* state = cvCreateStereoGCState( 64, 2 );
+		cv::Mat image(img1);
+		cvFindStereoCorrespondenceGC(image, img2->imageData, img3->imageData, img4->imageData, state, 0 );
+		cvShowImage("123", img3);
+	    cvReleaseStereoGCState( &state );
+
 	}
 	void DrawFrames()
 	{
