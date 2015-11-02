@@ -178,20 +178,32 @@ public:
 		FramesCount++;
 		std::cout << "Кадр занесён на карту (" << FramesCount << ")" << std::endl;
 	}
-	void AddFrameCameraDepth()
+	void AddFrameCameraDepth(bool fastState = 1)
 	{
 		CvSize size; size.width=W_WIDTH; size.height=W_HEIGHT;
-		IplImage * img1 = cvCreateImage(size, IPL_DEPTH_8U, 3); img1->origin = IPL_ORIGIN_BL;
-		IplImage * img2 = cvCreateImage(size, IPL_DEPTH_8U, 3); img2->origin = IPL_ORIGIN_BL;
-		IplImage * img3 = cvCreateImage(size, IPL_DEPTH_8U, 3); img3->origin = IPL_ORIGIN_BL;
-		IplImage * img4 = cvCreateImage(size, IPL_DEPTH_8U, 3); img4->origin = IPL_ORIGIN_BL;
-		glReadPixels(0, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_BYTE, img1->imageData);
-		glReadPixels(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_BYTE, img2->imageData);
+		IplImage* srcLeft  = cvCreateImage(size, IPL_DEPTH_8U, 3); //srcLeft->origin = IPL_ORIGIN_BL; 
+		IplImage* srcRight = cvCreateImage(size, IPL_DEPTH_8U, 3); //srcRight->origin = IPL_ORIGIN_BL;
+		IplImage* leftImage = cvCreateImage(cvGetSize(srcLeft), IPL_DEPTH_8U, 1); //leftImage->origin = IPL_ORIGIN_BL;
+		IplImage* rightImage = cvCreateImage(cvGetSize(srcRight), IPL_DEPTH_8U, 1); //rightImage->origin = IPL_ORIGIN_BL;
+		IplImage *img = cvCreateImage(size, IPL_DEPTH_8U, 1); //img->origin = IPL_ORIGIN_BL; 
+		glReadPixels(0, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, srcLeft->imageData);
+		glReadPixels(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, srcRight->imageData);
+		cvCvtColor(srcLeft, leftImage, CV_BGR2GRAY);
+		cvCvtColor(srcRight, rightImage, CV_BGR2GRAY);
+		CvMat* disparity_left = cvCreateMat( size.height, size.width, CV_16S );
+		CvMat* disparity_right = cvCreateMat( size.height, size.width, CV_16S );
 		CvStereoGCState* state = cvCreateStereoGCState( 64, 2 );
-		cv::Mat image(img1);
-		cvFindStereoCorrespondenceGC(image, img2->imageData, img3->imageData, img4->imageData, state, 0 );
-		cvShowImage("123", img3);
-	    cvReleaseStereoGCState( &state );
+		cvFindStereoCorrespondenceGC( leftImage, rightImage, disparity_left, disparity_right, state, 0 );
+		cvReleaseStereoGCState( &state );
+		/*CvStereoBMState* state = cvCreateStereoBMState(0, 32);
+		cvFindStereoCorrespondenceBM(leftImage, rightImage, disparity_left, state);
+		cvReleaseStereoBMState(&state);*/
+		CvMat* disparity_left_visual = cvCreateMat( size.height, size.width, CV_8U );
+		cvConvertScale( disparity_left, disparity_left_visual, -16 );
+		cvGetImage(disparity_left_visual, img);
+
+		cvShowImage("1", srcLeft);
+		cvShowImage("2", img);
 
 	}
 	void DrawFrames()
