@@ -1,13 +1,14 @@
 #include <highgui.h>
 #include <cv.h>
 #include <iostream>
+#include <process.h>
 #include <Windows.h>
 #include "glut.h"    
 #include "camera.h"
 #include "master.h"
 
 const double Z_NEAR = 0.1;
-const double Z_FAR = 150;
+const double Z_FAR = 100;
 const double VIEW_ANGLE = 60; 
 
 /* W_WIDTH - OpenGL&CV scene(!) horizontal size (not window) */ 
@@ -40,7 +41,7 @@ long prevTime = GetTickCount();
 float arr[4] = {50.0, 10.0, 50.0, 1.0};
 float arr2[3] = {50.0, -1.0, 50.0};
 float colorBlack[3] = {0.5, 0.3, 0.2};
-float colorX[3] = {1,0,1}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0}, 
+float colorX[3] = {1,0.64,0}, colorY[3] = {0,0,1}, colorZ[3] = {1,0,0}, 
 	colorA[3] = {1,1,0}, colorTeapot[3] = {0,1,0}, amb[4] = {0,1,0,0};
 
 int MODE_FREE = 0;
@@ -54,7 +55,9 @@ int mx = 0, my = 0;
 Master* master = NULL;
 bool createFrame = false, firstCamera = true;
 int ShowText = 0;
-IplImage* img1, *img2;
+IplImage* img1, *img2, *img;
+IplImage* srcLeft ;
+IplImage* srcRight;
 
 void SetProjectionParams(double *top, double *left, double viewAngle, double *aspect = NULL){
 	double tmp_a = 0;
@@ -63,6 +66,48 @@ void SetProjectionParams(double *top, double *left, double viewAngle, double *as
 	if (top) * top = Z_NEAR * tan((viewAngle/2)*D2R);
 	if (top && left) *left = -(*top) * (*aspect);
 }
+
+void CalcCameraDepth(void* pParams)
+	{
+		float cx,cy,cz,aY,aZ;
+		cx = cam1.X();
+		cy = cam1.Y();
+		cz = cam1.Z();
+		aY = cam1.GetAngleY();
+		aZ = cam1.GetAngleZ();
+		CvSize size; size.width=W_WIDTH; size.height=W_HEIGHT;
+		 //srcLeft->origin = IPL_ORIGIN_BL; 
+		 //srcRight->origin = IPL_ORIGIN_BL;
+		IplImage* leftImage = cvCreateImage(cvGetSize(srcLeft), IPL_DEPTH_8U, 1); //leftImage->origin = IPL_ORIGIN_BL;
+		IplImage* rightImage = cvCreateImage(cvGetSize(srcRight), IPL_DEPTH_8U, 1); //rightImage->origin = IPL_ORIGIN_BL;
+		 //img->origin = IPL_ORIGIN_BL; 
+		cvCvtColor(srcLeft, leftImage, CV_BGR2GRAY);
+		cvCvtColor(srcRight, rightImage, CV_BGR2GRAY);
+		CvMat* disparity_left = cvCreateMat( size.height, size.width, CV_16S );
+		CvMat* disparity_right = cvCreateMat( size.height, size.width, CV_16S );
+		std::cout << "Вычисление глубины..." << std::endl;
+		CvStereoGCState* state = cvCreateStereoGCState( 64, 2 );
+		cvFindStereoCorrespondenceGC( leftImage, rightImage, disparity_left, disparity_right, state, 0 );
+		cvReleaseStereoGCState( &state );
+		//CvStereoBMState* state = cvCreateStereoBMState(0, 32);
+	//	cvFindStereoCorrespondenceBM(leftImage, rightImage, disparity_left, state);
+	//	cvReleaseStereoBMState(&state);
+		CvMat* disparity_left_visual = cvCreateMat( size.height, size.width, CV_8U );
+		cvConvertScale( disparity_left, disparity_left_visual, -16 );
+		cvGetImage(disparity_left_visual, img);
+		for(int i = 0; i<(W_WIDTH*W_HEIGHT)/2; i++)
+		{
+			char a;
+			a = img->imageData[i];
+			img->imageData[i] = img->imageData[W_WIDTH*W_HEIGHT-i];
+			img->imageData[W_WIDTH*W_HEIGHT-i] = a;
+		}
+		master->AddFrame(img, Z_FAR, Z_NEAR, cx, cy, cz, aY, aZ);
+		std::cout << "Глубина вычислена" << std::endl;
+		//cvShowImage("1", srcLeft);
+		//cvShowImage("3", img);
+
+	}
 
 using namespace std;
 
@@ -106,7 +151,7 @@ namespace SourceScene {
 			glViewport(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT);
 			glRotated(cam1.GetAngleZ(), 1, 0, 0);
 			glRotated(cam1.GetAngleY(), 0, 1, 0);
-			glTranslated(-cam1.X()-3, -cam1.Y(), -cam1.Z());
+			glTranslated(-cam1.X()-0.5, -cam1.Y(), -cam1.Z());
 		}
 		
 		glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
@@ -420,7 +465,17 @@ void display(void){
 	if (createFrame)
 	{
 		//master->AddFrameGLDepth(0, W_HEIGHT, W_WIDTH, 2*W_HEIGHT, Z_FAR, Z_NEAR, &cam1);
-		master->AddFrameCameraDepth();
+		//master->AddFrameCameraDepth();
+		CvSize size; size.width=W_WIDTH; size.height=W_HEIGHT;
+		srcLeft =cvCreateImage(size, IPL_DEPTH_8U, 3);
+		srcRight=cvCreateImage(size, IPL_DEPTH_8U, 3);
+		img = cvCreateImage(size, IPL_DEPTH_8U, 1);
+		srcLeft->origin =1;
+		srcRight->origin =1;
+		img->origin =1;
+		glReadPixels(0, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, srcLeft->imageData);
+		glReadPixels(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, srcRight->imageData);
+		 _beginthread( CalcCameraDepth, NULL, NULL);
 		createFrame = false;
 	}
 	
@@ -517,6 +572,10 @@ void keybord(unsigned char key, int x, int y){
 	if (key == '1')
 	{
 		ShowText = 1;
+	}
+	if (key == '2')
+	{
+		cvShowImage("3", img);
 	}
 	if (key == 61)
 	{
