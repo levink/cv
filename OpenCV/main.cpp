@@ -86,12 +86,12 @@ void CalcCameraDepth(void* pParams)
 		CvMat* disparity_left = cvCreateMat( size.height, size.width, CV_16S );
 		CvMat* disparity_right = cvCreateMat( size.height, size.width, CV_16S );
 		std::cout << "Вычисление глубины..." << std::endl;
-		CvStereoGCState* state = cvCreateStereoGCState( 64, 2 );
-		cvFindStereoCorrespondenceGC( leftImage, rightImage, disparity_left, disparity_right, state, 0 );
-		cvReleaseStereoGCState( &state );
-		//CvStereoBMState* state = cvCreateStereoBMState(0, 32);
-	//	cvFindStereoCorrespondenceBM(leftImage, rightImage, disparity_left, state);
-	//	cvReleaseStereoBMState(&state);
+		//CvStereoGCState* state = cvCreateStereoGCState( 64, 2 );
+		//cvFindStereoCorrespondenceGC( leftImage, rightImage, disparity_left, disparity_right, state, 0 );
+		//cvReleaseStereoGCState( &state );
+		CvStereoBMState* state = cvCreateStereoBMState(0, 32);
+		cvFindStereoCorrespondenceBM(leftImage, rightImage, disparity_left, state);
+		cvReleaseStereoBMState(&state);
 		CvMat* disparity_left_visual = cvCreateMat( size.height, size.width, CV_8U );
 		cvConvertScale( disparity_left, disparity_left_visual, -16 );
 		cvGetImage(disparity_left_visual, img);
