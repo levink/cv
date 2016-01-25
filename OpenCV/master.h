@@ -181,12 +181,9 @@ public:
 	void AddFrame(IplImage * img, float _zFar, float _zNear, float cx, float cy, float cz, float aY, float aZ)
 	{
 		Pix mas;
-		float * depth = new float[W_WIDTH*W_HEIGHT];
-		int k = 0;
 		double _h = 1/(double)W_HEIGHT, _w = 1/(double)W_WIDTH, _z = 1/(double)Z_NEAR, top, left;
 
 		SetProjectionParams(&top, &left, viewAngle);
-	
 	    glm::vec4 Transformed;
 
 		int n = 0;
@@ -195,14 +192,18 @@ public:
 			double _y = -top + 2 * top * _h * y; //[-top; top]
 			for(int x = 0; x < W_WIDTH; x++)
 			{
-				double z_real = ((double)(img->imageData[W_WIDTH * y + x])*100)/255;
+				double z_real = (float)((unsigned char)(img->imageData[W_WIDTH * y + x]))*100/255;
 				if (z_real == Z_FAR) continue;
-				double x_real = x/(z_real*tan((viewAngle/2)*D2R));
-				double y_real = y/(z_real*tan((viewAngle/2)*D2R)); 
+				double zz = abs(z_real * _z);
+				double _x = left - 2 * left * _w * x; //[left; -left]
+				double x_real = _x * zz;
+				double y_real = _y * zz; 
+				 
 				Transformed = glm::vec4(x_real, y_real, z_real, 1.0f);
 				Transformed = glm::rotateX(Transformed, (float)(-aZ*D2R));
 				Transformed = glm::rotateY(Transformed, (float)(-aY*D2R));
 				Transformed = glm::vec4(Transformed[0]+cx, Transformed[1]+cy, Transformed[2]+cz, 1.0f);
+
 				float X = Transformed[0] , Y = Transformed[1], Z = Transformed[2];
 				int f = 0;
 				for(int i = 0; i<1000; i++)
@@ -224,11 +225,10 @@ public:
 						if(pl)
 						{
 							mas.x = X; mas.y = Y; mas.z = Z;
-							mas.r = 255; mas.g = 255; mas.b = 255;
+							mas.r = 250; mas.g = 250; mas.b = 250;
 							stor[i].el.push_back(mas);
+							//std::cout << "X: " << mas.x << ", Y: " << mas.y << ", Z: " << mas.z << std::endl;
 							f++;
-							k++;
-							std::cout << "X: " << mas.x << ", Y: " << mas.y << ", Z: " << mas.z << std::endl;
 						}
 					}
 				//	memory += (float)((sizeof(Pix)*f / 1048576));
@@ -240,39 +240,11 @@ public:
 
 		FramesCount++;
 		std::cout << "Кадр занесён на карту (" << FramesCount << ")" << std::endl;
-	
+
 	}
-	/*void AddFrameCameraDepth(bool fastState = 1)
-	{
-		CvSize size; size.width=W_WIDTH; size.height=W_HEIGHT;
-		IplImage* srcLeft  = cvCreateImage(size, IPL_DEPTH_8U, 3); //srcLeft->origin = IPL_ORIGIN_BL; 
-		IplImage* srcRight = cvCreateImage(size, IPL_DEPTH_8U, 3); //srcRight->origin = IPL_ORIGIN_BL;
-		IplImage* leftImage = cvCreateImage(cvGetSize(srcLeft), IPL_DEPTH_8U, 1); //leftImage->origin = IPL_ORIGIN_BL;
-		IplImage* rightImage = cvCreateImage(cvGetSize(srcRight), IPL_DEPTH_8U, 1); //rightImage->origin = IPL_ORIGIN_BL;
-		IplImage *img = cvCreateImage(size, IPL_DEPTH_8U, 1); //img->origin = IPL_ORIGIN_BL; 
-		glReadPixels(0, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, srcLeft->imageData);
-		glReadPixels(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, srcRight->imageData);
-		cvCvtColor(srcLeft, leftImage, CV_BGR2GRAY);
-		cvCvtColor(srcRight, rightImage, CV_BGR2GRAY);
-		CvMat* disparity_left = cvCreateMat( size.height, size.width, CV_16S );
-		CvMat* disparity_right = cvCreateMat( size.height, size.width, CV_16S );
-		CvStereoGCState* state = cvCreateStereoGCState( 64, 2 );
-		cvFindStereoCorrespondenceGC( leftImage, rightImage, disparity_left, disparity_right, state, 0 );
-		cvReleaseStereoGCState( &state );
-		//CvStereoBMState* state = cvCreateStereoBMState(0, 32);
-		//cvFindStereoCorrespondenceBM(leftImage, rightImage, disparity_left, state);
-		//cvReleaseStereoBMState(&state);
-		CvMat* disparity_left_visual = cvCreateMat( size.height, size.width, CV_8U );
-		cvConvertScale( disparity_left, disparity_left_visual, -16 );
-		cvGetImage(disparity_left_visual, img);
-
-		cvShowImage("1", srcLeft);
-		cvShowImage("2", img);
-
-	}*/
 	void DrawFrames()
 	{
-		glPointSize(pointSize);
+/*		glPointSize(pointSize);
 		glPushMatrix();
 		glBegin(GL_POINTS);
 		for(int i = 0; i<1000; i++)
@@ -284,7 +256,20 @@ public:
 			}
 		}
 		glEnd();
-		glPopMatrix();
+		glPopMatrix();*/
+
+		glColor3d(1,1,1);
+		for(int i = 0; i<1000; i++)
+		{
+			for(int ii = 0; ii<(int)stor[i].el.size(); ii++)
+			{
+				glPushMatrix();
+				glTranslated(stor[i].el[ii].x, stor[i].el[ii].y, stor[i].el[ii].z);
+				glutSolidCube(0.5);
+				glPopMatrix();
+			}
+		}
+
 	}
 	float GetUsedMemoryMB()
 	{
