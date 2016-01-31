@@ -178,14 +178,22 @@ public:
 		FramesCount++;
 		std::cout << "Кадр занесён на карту (" << FramesCount << ")" << std::endl;
 	}
-	void AddFrame(IplImage * img, float _zFar, float _zNear, float cx, float cy, float cz, float aY, float aZ)
+	void AddFrame(IplImage * img, IplImage *srcimg, float _zFar, float _zNear, float cx, float cy, float cz, float aY, float aZ)
 	{
 		Pix mas;
+		float * color;
+		color = new float[W_HEIGHT*W_WIDTH*3];
+		for(int i = 0; i<W_HEIGHT*W_WIDTH; i++) 
+		{
+			color[i*3] = (float)((unsigned char)(srcimg->imageData[i*3]));
+			color[i*3+1] = (float)((unsigned char)(srcimg->imageData[i*3+1]));
+			color[i*3+2] = (float)((unsigned char)(srcimg->imageData[i*3+2]));
+		}
 		double _h = 1/(double)W_HEIGHT, _w = 1/(double)W_WIDTH, _z = 1/(double)Z_NEAR, top, left;
 
 		SetProjectionParams(&top, &left, viewAngle);
 	    glm::vec4 Transformed;
-
+		std::cout << " - Перенос точек на карту " << std::endl;
 		int n = 0;
 		for(int y = 0; y < W_HEIGHT; y++)
 		{
@@ -225,7 +233,7 @@ public:
 						if(pl)
 						{
 							mas.x = X; mas.y = Y; mas.z = Z;
-							mas.r = 250; mas.g = 250; mas.b = 250;
+							mas.r = color[n*3]; mas.g = color[n*3+1]; mas.b = color[n*3+2];
 							stor[i].el.push_back(mas);
 							//std::cout << "X: " << mas.x << ", Y: " << mas.y << ", Z: " << mas.z << std::endl;
 							f++;
@@ -258,14 +266,15 @@ public:
 		glEnd();
 		glPopMatrix();*/
 
-		glColor3d(1,1,1);
 		for(int i = 0; i<1000; i++)
 		{
 			for(int ii = 0; ii<(int)stor[i].el.size(); ii++)
 			{
 				glPushMatrix();
+				glColor3ub(stor[i].el[ii].b,stor[i].el[ii].g,stor[i].el[ii].r);
 				glTranslated(stor[i].el[ii].x, stor[i].el[ii].y, stor[i].el[ii].z);
 				glutSolidCube(0.5);
+				glColor3ub(stor[i].el[ii].b,stor[i].el[ii].g,stor[i].el[ii].r);
 				glPopMatrix();
 			}
 		}

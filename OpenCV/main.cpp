@@ -32,8 +32,8 @@ const double VIEW_ANGLE = 60;
 
 #pragma endregion
 
-Camera cam1 = Camera(0, 10, 0, 2);
-Camera cam2 = Camera(0, 10, 0, 1);
+Camera cam1 = Camera(0, 10, 0, 0, 2);
+Camera cam2 = Camera(-70, 10, 90, 0, 1);
 int activeScene = 0;
 
 long prevTime = GetTickCount();
@@ -85,7 +85,7 @@ void CalcCameraDepth(void* pParams)
 		cvCvtColor(srcRight, rightImage, CV_BGR2GRAY);
 		CvMat* disparity_left = cvCreateMat( size.height, size.width, CV_16S );
 		CvMat* disparity_right = cvCreateMat( size.height, size.width, CV_16S );
-		std::cout << "Вычисление глубины..." << std::endl;
+		std::cout << "Запущено занесение кадра на карту...\n - Вычисление глубины" << std::endl;
 		CvStereoGCState* state = cvCreateStereoGCState( 64, 2 );
 		cvFindStereoCorrespondenceGC( leftImage, rightImage, disparity_left, disparity_right, state, 0 );
 		cvReleaseStereoGCState( &state );
@@ -95,14 +95,7 @@ void CalcCameraDepth(void* pParams)
 		CvMat* disparity_left_visual = cvCreateMat( size.height, size.width, CV_8U );
 		cvConvertScale( disparity_left, disparity_left_visual, -16 );
 		cvGetImage(disparity_left_visual, img);
-		for(int i = 0; i<(W_WIDTH*W_HEIGHT)/2; i++)
-		{
-			char a;
-			a = img->imageData[i];
-			img->imageData[i] = img->imageData[W_WIDTH*W_HEIGHT-i];
-			img->imageData[W_WIDTH*W_HEIGHT-i] = a;
-		}
-		master->AddFrame(img, Z_FAR, Z_NEAR, cx, cy, cz, aY, aZ);
+		master->AddFrame(img, srcLeft, Z_FAR, Z_NEAR, cx, cy, cz, aY, aZ);
 		std::cout << "Глубина вычислена" << std::endl;
 		//cvShowImage("1", srcLeft);
 		//cvShowImage("3", img);
@@ -475,6 +468,7 @@ void display(void){
 		img->origin =1;
 		glReadPixels(0, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, srcLeft->imageData);
 		glReadPixels(W_WIDTH, W_HEIGHT, W_WIDTH, W_HEIGHT, GL_BGR_EXT, GL_UNSIGNED_BYTE, srcRight->imageData);
+
 		 _beginthread( CalcCameraDepth, NULL, NULL);
 		createFrame = false;
 	}

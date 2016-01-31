@@ -31,7 +31,7 @@ private:
 public:
 	double v;
 	bool move[8];
-	Camera(float x , float y, float z, double velocity);	
+	Camera(float x , float y, float z, float angY, double velocity);	
 	double X(){
 		return camPos[0];
 	}
@@ -101,12 +101,12 @@ public:
 	}
 };
 
-Camera::Camera(float x , float y, float z, double velocity)
+Camera::Camera(float x , float y, float z, float angY, double velocity)
 {
 	camPos[0] = x; 
 	camPos[1] = y;
 	camPos[2] = z;
-	aY = 0;
+	aY = angY;
 	aZ = 0;
 	v = velocity;
 	for(int i = Forward; i < RotateLeft; i++)
